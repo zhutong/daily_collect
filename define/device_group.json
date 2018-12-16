@@ -1,0 +1,71 @@
+{
+    "FEX_ATTACHED_N7K&N5K": {
+        "description": "Devices with FEX attached",
+        "filter": [
+            "NF5|JD5 SW Cisco",
+            "JD70 !0A- !0B- VDC !VDC1"
+        ]
+    },
+    "ALL_N7K_VDC1": {
+        "description": "ALL N7K VDC1",
+        "filter": ["70SW VDC1"]
+    },
+    "ALL_N7K_NOT_VDC1": {
+        "description": "ALL N7K except VDC1",
+        "filter": [
+            "70SW !VDC1"
+        ]
+    },
+    "ALL_N7K": {
+        "description": "ALL N7K",
+        "filter": ["70SW"]
+    },
+    "ALL_N5K": {
+        "description": "ALL N5K",
+        "filter": ["NF5|JD5 SW Cisco"]
+    },
+    "ALL_CISCO_DS": {
+        "description": "All Cisco gateway switches",
+        "filter": [
+            "70SW VDC3 0A-|0B-",
+            "NF70SW0A-F1-VDC2|NF70SW0A-F3-VDC4|NF70SW0A-F3-VDC3|JD70SW0A-F2-VDC4|JD70SW0A-F3-VDC5"
+        ]
+    },
+    "ALL_CISCO_AS": {
+        "description": "All Cisco access switches",
+        "filter": [
+            "NF|JD|TG SW|BL !SW0A- !SW0B- !VDC1 cisco|ios"
+        ]
+    },
+    "HW_BL": {
+        "description": "All Huaway BL switches",
+        "filter": [
+            "91BL"
+        ]
+    },
+    "ALL_CISCO": {
+        "description": "All Cisco devices",
+        "filter": ["Cisco|ios"]
+    },
+    "ALL_CISCO_EXCLUDE_VDC1": {
+        "description": "All Cisco devices but not VDC1",
+        "filter": [
+            "NF|JD|TG Cisco|ios !VDC1"
+        ]
+    },
+    "ALL_CISCO_FHYSICAL_SW": {
+        "description": "All Cisco physical devices",
+        "filter": [
+            "NF|JD|TG Cisco|ios !VDC",
+            "VDC1"
+        ]
+    },
+    "ALL_CISCO_SW": {
+        "description": "All Cisco switches",
+        "filter": ["JD|NF|TG Cisco|ios SW|BL"]
+    },
+    "ALL_MDS": {
+        "description": "All Cisco SAN switches",
+        "filter": ["97SN Cisco"]
+    }
+}

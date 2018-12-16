@@ -1,0 +1,10 @@
+[{
+	"device_groups": ["FEX_ATTACHED_N7K&N5K"],
+	"commands": [{
+		"command": "show fex",
+		"parser": [
+			"showparser",
+			"parse_fex"
+		]
+	}]
+}]

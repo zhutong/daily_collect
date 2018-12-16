@@ -1,0 +1,63 @@
+[{
+    "devices": ["NF|JD|TG !snmp-fail !NF55AC !-N3"],
+    "collections": [{
+        "name": "if_table",
+        "oids": [
+            "1.3.6.1.2.1.2.2.1.2",
+            "1.3.6.1.2.1.2.2.1.3",
+            "1.3.6.1.2.1.2.2.1.5",
+            "1.3.6.1.2.1.2.2.1.6",
+            "1.3.6.1.2.1.2.2.1.7",
+            "1.3.6.1.2.1.2.2.1.8",
+            "1.3.6.1.2.1.2.2.1.9",
+            "1.3.6.1.2.1.31.1.1.1.18"
+        ],
+        "operate": "bulk_walk",
+        "parser": [
+            "snmpparser",
+            "parse_if_table"
+        ]
+    }]
+}, {
+    "devices": ["NF|JD|TG !snmp-fail !NF55AC !NF55AC !-N3"],
+    "collections": [{
+        "name": "if_ip_table",
+        "oids": [
+            "1.3.6.1.2.1.4.20.1.2",
+            "1.3.6.1.2.1.4.20.1.3"
+        ],
+        "operate": "bulk_walk",
+        "parser": [
+            "snmpparser",
+            "parse_if_ip_table"
+        ]
+    }]
+}, {
+    "devices": ["NF|JD|TG CISCO|IOS|NXOS !snmp-fail !NF55AC !NF55AC !-N3"],
+    "collections": [{
+        "name": "cdp_table",
+        "oids": [
+            "1.3.6.1.4.1.9.9.23.1.2.1.1.6",
+            "1.3.6.1.4.1.9.9.23.1.2.1.1.7"
+        ],
+        "operate": "bulk_walk",
+        "parser": [
+            "snmpparser",
+            "parse_cdp_table"
+        ]
+    }]
+}, {
+    "devices": ["NF|JD|TG !snmp-fail !NF55AC !NF55AC !-N3"],
+    "collections": [{
+        "name": "lldp_table",
+        "oids": [
+            "1.0.8802.1.1.2.1.4.1.1.9",
+            "1.0.8802.1.1.2.1.4.1.1.7"
+        ],
+        "operate": "bulk_walk",
+        "parser": [
+            "snmpparser",
+            "parse_lldp_table"
+        ]
+    }]
+}]

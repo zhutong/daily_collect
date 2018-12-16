@@ -1,0 +1,268 @@
+[{
+		"devices": ["NF70SW 0A|0B -B5|-B6 VDC1", "JD70SW VDC1"],
+		"commands": [{
+				"command": "slot 5 show system internal raid",
+				"parser": [
+					"day2",
+					"parse_system_internal_raid"
+				]
+			},
+			{
+				"command": "slot 6 show system internal raid",
+				"parser": [
+					"day2",
+					"parse_system_internal_raid"
+				]
+			}
+		]
+	},
+	{
+		"devices": ["70SW VDC1"],
+		"commands": [{
+				"command": "slot 5 show system internal flash",
+				"parser": [
+					"day2",
+					"parse_system_internal_flash"
+				]
+			},
+			{
+				"command": "slot 6 show system internal flash",
+				"parser": [
+					"day2",
+					"parse_system_internal_flash"
+				]
+			}
+		]
+	},
+	{
+		"devices": ["65SW"],
+		"commands": [{
+			"command": "show mac-address-table",
+			"parser": [
+				"showparser",
+				"parse_mac"
+			]
+		}]
+	},
+	{
+		"device_groups": ["ALL_N7K_VDC1"],
+		"commands": [{
+			"command": "show vdc membership",
+			"parser": [
+				"showparser",
+				"parse_vdc_membership"
+			]
+		}]
+	},
+	{
+		"device_groups": ["ALL_N7K"],
+		"commands": [{
+			"command": "show processes memory | in taca",
+			"parser": [
+				"day2",
+				"parse_processes_memory_tacacs"
+			]
+		}]
+	},
+	{
+		"device_groups": ["ALL_N7K_NOT_VDC1"],
+		"commands": [{
+			"command": "show port-channel summary",
+			"parser": [
+				"showparser",
+				"parse_port_channel"
+			]
+		}]
+	},
+	{
+		"device_groups": ["ALL_CISCO_DS"],
+		"commands": [{
+			"command": "show vlan brief",
+			"parser": [
+				"showparser",
+				"parse_vlan_brief"
+			]
+		}]
+	},
+	{
+		"device_groups": ["ALL_CISCO_AS"],
+		"commands": [{
+			"command": "show vlan brief",
+			"parser": [
+				"showparser",
+				"parse_vlan_brief"
+			]
+		}]
+	},
+	{
+		"device_groups": ["HW_BL"],
+		"commands": [{
+			"command": "display vlan | in common",
+			"parser": [
+				"day2",
+				"parse_vlan_huawei"
+			]
+		}]
+	},
+	{
+		"device_groups": ["FEX_ATTACHED_N7K&N5K"],
+		"dependency": "show fex",
+		"commands": [{
+			"command": "attach fex",
+			"command_group": [
+				"attach fex {id}",
+				"dbgexec satctrl env show-ps",
+				"dbgexec satctrl env show-ps-la",
+				"show platform software {code_name} rmon 0 ni0",
+				"exit"
+			],
+			"parser": [
+				"day2",
+				"attach_fex"
+			]
+		}]
+	},
+	{
+		"device_groups": ["ALL_CISCO_EXCLUDE_VDC1"],
+		"commands": [{
+				"command": "show cdp neighbors detail",
+				"parser": [
+					"showparser",
+					"parse_cdp_detail"
+				]
+			},
+			{
+				"command": "show lldp neighbors detail",
+				"parser": [
+					"showparser",
+					"parse_lldp_detail"
+				]
+			},
+			{
+				"command": "show interface description",
+				"parser": [
+					"showparser",
+					"parse_interface_description"
+				]
+			},
+			{
+				"command": "show etherchannel summary",
+				"parser": [
+					"showparser",
+					"parse_port_channel"
+				]
+			},
+			{
+				"command": "show ip arp",
+				"parser": [
+					"showparser",
+					"parse_arp"
+				]
+			},
+			{
+				"command": "show ip route",
+				"parser": [
+					"showparser",
+					"parse_route"
+				]
+			}
+		]
+	},
+	{
+		"device_groups": ["ALL_CISCO"],
+		"commands": [{
+			"command": "show running-config"
+		}, {
+			"command": "show interface trans detail",
+			"parser": [
+				"showparser",
+				"parse_transceiver"
+			]
+		}, {
+			"command": "show version",
+			"parser": [
+				"showparser",
+				"parse_version"
+			]
+		}]
+	},
+	{
+		"device_groups": ["ALL_CISCO_FHYSICAL_SW"],
+		"commands": [{
+			"command": "show inventory",
+			"parser": [
+				"showparser",
+				"parse_inventory"
+			]
+		}, {
+			"command": "show module",
+			"parser": [
+				"showparser",
+				"parse_module"
+			]
+		}]
+	},
+	{
+		"device_groups": ["ALL_MDS"],
+		"commands": [{
+			"command": "show hardware internal errors all",
+			"parser": [
+				"day2",
+				"parse_mds_crc_err"
+			]
+		}, {
+			"command": "show logging onboard error-stats"
+		}, {
+			"command": "show interface",
+			"parser": [
+				"showparser",
+				"parse_interface"
+			]
+		}, {
+			"command": "clear counters"
+		}, {
+			"command": ""
+		}]
+	},
+	{
+		"device_groups": [
+			"ALL_CISCO_DS",
+			"ALL_CISCO_AS"
+		],
+		"commands": [{
+			"command": "show mac address-table",
+			"parser": [
+				"showparser",
+				"parse_mac"
+			]
+		}, {
+			"command": "show interface brief",
+			"parser": [
+				"showparser",
+				"parse_ip_interface_brief"
+			]
+		}, {
+			"command": "show ip interface brief",
+			"parser": [
+				"showparser",
+				"parse_ip_interface_brief"
+			]
+		}, {
+			"command": "show interface status",
+			"parser": [
+				"showparser",
+				"parse_interface_status"
+			]
+		}, {
+			"command": "show interface",
+			"parser": [
+				"showparser",
+				"parse_interface"
+			]
+		}, {
+			"command": "clear counters"
+		}, {
+			"command": ""
+		}]
+	}
+]

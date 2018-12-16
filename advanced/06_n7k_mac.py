@@ -1,0 +1,111 @@
+import json
+import logging
+import re
+from collections import defaultdict
+
+import requests
+
+from config import *
+
+re_port = re.compile('Ethernet(\d+)/(\d+)$')
+
+MAC_FE_FILE = '/data/jd7k_mac_check/n7k_mac_fe.json'
+CHECK_CMD_FILE = '/data/jd7k_mac_check/n7k_mac_check_cmd.json'
+F5_GW_MAC_FILE = '/data/jd7k_mac_check/f5_mac.json'
+L3_PORT_FILE = '/tmp/l3_interface.json'
+CHECK_CMD = 'show hardware mac address-table {slot}'
+
+
+special_hsrp_mac = {
+    ('I1', '1650'): '0000.0c07.ac41',
+    ('B3', '1300'): '0000.0c07.ac0d',
+    ('B3', '1238'): '0000.0c07.ac37',
+    ('M2', '1870'): '0000.0c07.ac01',
+    ('M2', '1887'): '0000.0c07.ac58',
+    ('B5', '1487'): '0000.0c07.ac59'
+}
+
+
+def get_hsrp_mac(zone, vlan):
+    mac = '0000.0c07.ac%02x' % int(vlan[-2:])
+    return special_hsrp_mac.get((zone, vlan), mac)
+
+
+def get_module_chip(ports, down_ports):
+    data = defaultdict(list)
+    slots = []
+    for p in ports:
+        if p in down_ports:
+            continue
+        r = re_port.match(p)
+        if r:
+            slot, port = r.groups()
+            slots.append(slot)
+            data[slot].append((int(port)-1)//4)
+    return slots, [dict(slot=s, chips=list(set(data[s]))) for s in data]
+
+
+def create_check_script(n7k_module_chips):
+    commands = {}
+    for n7k, data in n7k_module_chips.items():
+        lines = []
+        lines.append('show vlan internal bd-info vlan-to-bd all-vlan')
+        lines.append('show mac address-table')
+        for s in data['slots']:
+            lines.append(CHECK_CMD.format(slot=s))
+        commands[n7k] = lines
+    return commands
+
+
+def main():
+    logging.info('Analysis N7K MAC')
+    n7k_module_chips = {}
+    path = opj(PARSED_CLI_PATH, 'main')
+    for fn in os.listdir(path):
+        hostname = fn[:-5]
+        if not hostname.startswith('JD70SW'):
+            continue
+        if '0A-' in hostname or '0B-' in hostname:
+            continue
+        if 'VDC1' in hostname or 'C0' in hostname:
+            continue
+        with open(opj(path, fn)) as f:
+            data = json.load(f)
+        ports = data.get('show interface status', [])
+        down_ports = [p['interface']
+                      for p in ports if p['status'] != 'connected']
+        vlans = data.get('show vlan brief', [])
+        all_slots = []
+        module_chips = []
+        for v in vlans[1:]:
+            slots, chips = get_module_chip(v['ports'], down_ports)
+            all_slots.extend(slots)
+            module_chips.append(dict(vlan=v['id'], chips=chips))
+        slots = sorted(list(set(all_slots)), key=lambda x: int(x))
+        if not slots:
+            continue
+        n7k_module_chips[hostname] = dict(
+            slots=slots, fe=module_chips)
+
+    commands = create_check_script(n7k_module_chips)
+    with open(MAC_FE_FILE, 'w') as f:
+        json.dump(n7k_module_chips, f, indent=4)
+    with open(CHECK_CMD_FILE, 'w') as f:
+        json.dump(commands, f, indent=4)
+
+    with open(L3_PORT_FILE) as f:
+        data = json.load(f)
+
+    f5_mac = []
+    for d, ip_dict in data.items():
+        if 'SL' not in d:
+            continue
+        for ip, info in ip_dict.items():
+            # and 'internal' in info['interface']:
+            if info['operStatus'] == 'up':
+                mac = info['macAddress']
+                if mac == '0000.0000.0000':
+                    continue
+                f5_mac.append(info['macAddress'])
+    with open(F5_GW_MAC_FILE, 'w') as f:
+        json.dump(list(set(f5_mac)), f, indent=2)
