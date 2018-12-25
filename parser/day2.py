@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import logging
 import re
 
 
@@ -74,7 +73,15 @@ def parse_vlan_huawei(text, *args, **kwargs):
     return [m.groupdict() for m in re_vlan.finditer(text)]
 
 
-def parse_mds_crc_err(text, *args, **kwargs):
+def parse_stp_summary_total(text, *args, **kwargs):
+    try:
+        n = int(text.splitlines()[1].split()[-1])
+    except:
+        n = 0
+    return [dict(logic_numbers=n)]
+
+
+def parse_mds_hardware_internal_error(text, *args, **kwargs):
     F16_IPA_IPA0_CNT_BAD_CRC = 0
     F16_IPA_IPA0_CNT_CORRUPT = 0
     F16_IPA_IPA1_CNT_BAD_CRC = 0
@@ -108,9 +115,66 @@ def parse_mds_crc_err(text, *args, **kwargs):
     return [result_dic]
 
 
-def parse_stp_summary_total(text, *args, **kwargs):
-    try:
-        n = int(text.splitlines()[1].split()[-1])
-    except:
-        n = 0
-    return [dict(logic_numbers=n)]
+def parse_mds_logging_onboard_error_stats(text, *args, **kwargs):
+    port_dict = {}
+    for l in text.splitlines():
+        if l.startswith('fc'):
+            ss = l.split('|')
+            name, count = ss[0].strip(), int(ss[2].strip())
+            if name in port_dict:
+                continue
+            port_dict[name] = count
+    datas = []
+    for p in port_dict:
+        datas.append(dict(interface=p, onboard_err_cnt=port_dict[p]))
+    return datas
+
+
+def parse_mds_interface_detail_counters(text, *args, **kwargs):
+    datas = []
+    start = False
+    for l in text.splitlines():
+        if l.startswith('fc'):
+            start = True
+            name = l.strip()
+        elif not start:
+            continue
+        elif 'class-f frames' in l and 'bytes received' in l:
+            if l.split()[0] == '0':
+                start = False
+                continue
+        elif 'link failures' in l:
+            ss = l.split()
+            link_fail = int(ss[0])
+            sync_loss = int(ss[3])
+            signal_loss = int(ss[6])
+        elif 'invalid transmission words' in l:
+            invalid_tx_words = int(l.split()[0])
+        elif 'timeout discards' in l:
+            ss = l.split()
+            timeout_discard = int(ss[0])
+            credit_loss = int(ss[3])
+        elif 'invalid CRC' in l:
+            invalid_crc = int(l.split()[0])
+        elif 'link reset received' in l:
+            link_reset_rx = int(l.split()[0])
+        elif 'link reset transmitted' in l:
+            link_reset_tx = int(l.split()[0])
+        elif 'frames discarded' in l:
+            frame_discard = int(l.split()[0])
+        elif 'framing errors' in l:
+            frame_error = int(l.split()[0])
+            data = dict(interface=name,
+                        link_failure=link_fail,
+                        signal_loss=signal_loss,
+                        sync_loss=sync_loss,
+                        invalid_tx_words=invalid_tx_words,
+                        invalid_crc=invalid_crc,
+                        timeout_discard=timeout_discard,
+                        credit_loss=credit_loss,
+                        link_reset_rx=link_reset_rx,
+                        link_reset_tx=link_reset_tx,
+                        frame_discard=frame_discard,
+                        frame_error=frame_error)
+            datas.append(data)
+    return datas

@@ -7,17 +7,20 @@ from collections import defaultdict
 
 import requests
 from tornado.log import enable_pretty_logging
-from jinja2 import Template
 
-APP_URL = 'http://127.0.0.1/apps/tools/api/'
-GET_MAIL_LIST_URL = '%sget_wl2_mail_list' % APP_URL
-SEND_MAIL_URL = '%ssend_mail' % APP_URL
+TOOLS_APP_URL = 'http://127.0.0.1/apps/tools/api/'
+GET_MAIL_LIST_URL = '%sget_wl2_mail_list' % TOOLS_APP_URL
+SEND_MAIL_URL = '%ssend_mail' % TOOLS_APP_URL
 CLI_URL = 'http://127.0.0.1:8080/api/v1/sync/cli'
+CREDENTIAL_URL = 'http://127.0.0.1:8080/api/v1/credential'
+TEMPLATE_TOOL_URL = 'http://127.0.0.1:9116/apps/scenario_change/api/gen_device_config'
 
 PATH = '/data/jd7k_mac_check'
 CMD_FN = os.path.join(PATH, 'n7k_mac_check_cmd.json')
 FE_FN = os.path.join(PATH, 'n7k_mac_fe.json')
+LAST_MISSED_FN = os.path.join(PATH, 'last_missed.json')
 CHECK_OUTPUT_FN = os.path.join(PATH, 'missed_mac.html')
+CLEAR_SCRIPT_FN = os.path.join(PATH, 'clear_mac_script.txt')
 
 re_bd = re.compile('\d+\s+(?P<vlan>\d+)\s+(?P<bd>\d+)')
 re_mac = re.compile('\w?\s+?(?P<vlan>\d+)\s+'
@@ -25,50 +28,49 @@ re_mac = re.compile('\w?\s+?(?P<vlan>\d+)\s+'
 re_slot = re.compile('(?P<fe>\d+)\s+\d+\s+\d+\s+(?P<bd>\d+)'
                      '\s+(?P<mac>\w+\.\w+\.\w+)\s+', re.I)
 
-body_template = '''
-    <style>
-        h4 {
-            margin: 15px 0 0 0;
-        }
-        table {
-            width: 100%;
-            max-width: 100%;
-            border: 1px solid #aaaaaa;
-            border-spacing: 0;
-            border-collapse: collapse;
-            margin: 3px 0;
-        }
-        th {
-            color: white;
-            background-color: #337ab7;
-        }
-        th, td {
-            text-align: center;
-            line-height: 1.5;
-            border: 1px solid #aaaaaa;
-        }
-    </style>
-    <h3>嘉定N7K未同步网关MAC地址</h3>
-    <table>
-        <thead>
-            {% for f in ('Hostname','VLAN', 'SLOT', 'FE', 'Missed MAC') %}
-            <th>{{ f }}</th>
-            {% endfor %}
-        </thead>
-        <tbody>
-        {% for hostname, datas in alarm.items() %}
-            {% for data in datas %}
-            <tr>
-                <td>{{ hostname }}</td>
-                {% for f in ('vlan', 'slot', 'fe') %}
-                <td>{{ data[f] }}</td>
-                {% endfor %}
-                <td>{{ ' | '.join(data['mac']) }}</td>
-            </tr>
-            {% endfor %}
-        {% endfor %}
-        </tbody>
-    </table>'''
+body_template = u'''<!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            h4 {
+                margin: 15px 0 0 0;
+            }
+            table {
+                width: 100%;
+                max-width: 100%;
+                border: 1px solid #aaaaaa;
+                border-spacing: 0;
+                border-collapse: collapse;
+                margin: 3px 0;
+            }
+            th {
+                color: white;
+                background-color: #337ab7;
+            }
+            th,
+            td {
+                text-align: center;
+                line-height: 1.5;
+                border: 1px solid #aaaaaa;
+            }
+            .alarm {
+                background: orange;
+                color: white;
+            }
+        </style>
+    </head>
+
+    <body>
+        <h3>嘉定N7K未同步网关MAC地址</h3>
+        <table>
+            <thead>
+                <th>设备名</th>
+                <th>Missed MAC@Vlan</th>
+                <th>SLOT/FEs</th>
+                <th>持续2天</th>
+            </thead>
+            <tbody>'''
 
 
 GW_MAC_PREFIXES = '0000.0c07', '0001.d7', '0023.e9', '000a.49', 'f415.63'
@@ -107,6 +109,8 @@ def __parse_slot_mac(hostname, text, bd_dict):
 
 
 def __is_not_today(full_fn, seconds):
+    if not DEPLOYED:
+        return False
     m_time = os.path.getmtime(full_fn)
     return (time.time() - m_time) > seconds
 
@@ -137,7 +141,7 @@ def check(n7k_module_chips, hostname, fn):
     try:
         with open(fn) as f:
             data = json.load(f)
-        missed_mac = []
+        missed_mac = defaultdict(list)
         fe_bd_mac_dict = {}
         for o in data['output']:
             cmd = o['command']
@@ -164,14 +168,59 @@ def check(n7k_module_chips, hostname, fn):
                     chip_vlan_macs = set(
                         fe_bd_mac_dict[slot][fe].get(vlan, []))
                     missed = vlan_gw_macs - chip_vlan_macs
-                    if missed:
-                        missed_mac.append(dict(vlan=vlan,
-                                               slot=slot,
-                                               fe=fe,
-                                               mac=list(missed)))
+                    for m in missed:
+                        key = '%s@%s' % (m, vlan)
+                        missed_mac[key].append('%s/%s' % (slot, fe))
     except:
         logging.warning('Check %s fail', hostname)
     return missed_mac
+
+
+def create_files(missed_mac_dict, last_missed):
+    html_lines = []
+    scripts = defaultdict(list)
+
+    for hostname, datas in missed_mac_dict.items():
+        for m, fes in datas.items():
+            if m in last_missed.get(hostname, {}):
+                html_lines.append('<tr class="alarm">')
+                last2days = 'Y'
+                scripts[hostname].append(m)
+            else:
+                html_lines.append('<tr>')
+                last2days = 'N'
+            html_lines.append('<td>%s</td>' % hostname)
+            html_lines.append('<td>%s</td>' % m)
+            html_lines.append('<td>%s</td>' % ', '.join(fes))
+            html_lines.append('<td>%s</td>' % last2days)
+            html_lines.append('<tr>')
+
+    html_lines.append('</tbody></table>')
+    mail_body = body_template + '\n'.join(html_lines)
+    with open(os.path.join(PATH, CHECK_OUTPUT_FN), 'w') as f:
+        f.write(mail_body)
+
+    n7k_list = []
+    res = requests.get(CREDENTIAL_URL)
+    devices = res.json()['device_info']
+    for hostname, macs in scripts.items():
+        device = devices[hostname]
+        ip = device['ip']
+        method = device.get('method', 'ssh') or 'ssh'
+        mac_list = []
+        for mac in macs:
+            m, v = mac.split('@')
+            mac_list.append(dict(vlan=v, mac=m))
+        n7k_list.append(dict(hostname=hostname,
+                             ip=ip,
+                             method=method,
+                             mac_list=mac_list))
+    data = dict(template_id='N7K清除MAC', data=dict(n7k_list=n7k_list))
+    res = requests.post(TEMPLATE_TOOL_URL, json=data)
+    with open(os.path.join(PATH, CLEAR_SCRIPT_FN), 'w') as f:
+        f.write(res.json()['config'])
+
+    return mail_body
 
 
 def send_mail(body):
@@ -180,10 +229,13 @@ def send_mail(body):
         "subject": "Day2: 嘉定N7K未同步的网关MAC",
         'body_html': body,
         "receivers": receivers,
+        "attach": [CLEAR_SCRIPT_FN]
     }
     res = requests.post(SEND_MAIL_URL, data=json.dumps(data))
     logging.info(res.text)
 
+
+DEPLOYED = False
 
 if __name__ == '__main__':
     enable_pretty_logging()
@@ -192,8 +244,8 @@ if __name__ == '__main__':
     else:
         with open(FE_FN) as f:
             n7k_module_chips = json.load(f)
-
-        collect(n7k_module_chips)
+        if DEPLOYED:
+            collect(n7k_module_chips)
         missed_mac_dict = {}
         for fn in os.listdir(PATH):
             if not fn.startswith('O__'):
@@ -206,10 +258,12 @@ if __name__ == '__main__':
             missed_mac = check(n7k_module_chips, hostname, full_fn)
             if missed_mac:
                 missed_mac_dict[hostname] = missed_mac
-
-        mail_body = Template(body_template).render(alarm=missed_mac_dict)
-        with open(os.path.join(PATH, CHECK_OUTPUT_FN), 'w') as f:
-            f.write(mail_body)
-
-        if missed_mac_dict:
+        # load last missed data
+        with open(LAST_MISSED_FN) as f:
+            last_missed = json.load(f)
+        # save today's data as last missed data
+        with open(LAST_MISSED_FN, 'w') as f:
+            json.dump(missed_mac_dict, f, indent=4)
+        mail_body = create_files(missed_mac_dict, last_missed)
+        if DEPLOYED and missed_mac_dict:
             send_mail(mail_body)

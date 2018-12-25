@@ -208,6 +208,26 @@ def fex_pwr_rx_crc(datas, hostname, *args):
     return processed, alarm_items
 
 
+def n5k_logic(datas, hostname, *args):
+    thresholds = {
+        '50': 12500,
+        '55': 16000,
+        '56': 32000
+    }
+    processed = []
+    alarm_items = []
+    for d in datas:
+        new_value = {}
+        for k, v in d.items():
+            new_value[k] = dict(value=v)
+            t = thresholds[hostname[2:4]]
+            if int(v) > t:
+                new_value[k]['alarm'] = 4
+                alarm_items.append(new_value)
+        processed.append(new_value)
+    return processed, alarm_items
+
+
 def module(datas, *args):
     s_alarms = (('Fail', 'PwrDown'), 5),
     d_alarms = (('Fail',), 4),
@@ -244,8 +264,8 @@ def inventory(datas, *args):
     return processed, []
 
 
-def __get_last_mds_data(hostname):
-    mod = {
+def __get_last_mds_data(hostname, cmd):
+    default_data = {
         "F16_IPA_IPA0_CNT_BAD_CRC": 0,
         "F16_IPA_IPA0_CNT_CORRUPT": 0,
         "F16_IPA_IPA1_CNT_BAD_CRC": 0,
@@ -255,15 +275,16 @@ def __get_last_mds_data(hostname):
     }
     try:
         with open(opj(LAST_OUTPUT_DATA_PATH, 'parsed', 'cli', 'main', '%s.json' % hostname)) as f:
-            json_struct = json.load(f)
-            return json_struct.get('show hardware internal errors all')[0]
+            data = json.load(f)
+        return data.get(cmd)[0]
     except:
-        return mod
+        return default_data
 
 
 def mds_asic_crc_err(datas, hostname, *args):
     crc_alarms = (10000, 5), (1000, 4),  (10, 3), (0, 2)
-    last_mds_dict = __get_last_mds_data(hostname)
+    last_mds_dict = __get_last_mds_data(hostname,
+                                        'show hardware internal errors all')
     alarm_items = []
     processed = []
     new_value = {}
@@ -284,22 +305,43 @@ def mds_asic_crc_err(datas, hostname, *args):
     return processed, alarm_items
 
 
-def n5k_logic(datas, hostname, *args):
-    thresholds = {
-        '50': 12500,
-        '55': 16000,
-        '56': 32000
-    }
+def mds_onbord_err(datas, hostname, *args):
+    alarms = (100000, 5), (10000, 4), (1000, 3), (10, 2)
+    last_mds_dict = __get_last_mds_data(hostname,
+                                        'show logging onboard error-stats')
+    alarm_items = []
+    processed = []
+    new_value = {}
+    check_counters = list(last_mds_dict.keys())
+    alarmed = False
+    for each_counter in check_counters:
+        old_value, current_value = last_mds_dict[each_counter], datas[0][each_counter]
+        increased = current_value - old_value
+        new_value[each_counter] = dict(value=current_value)
+        alarm_level = great_then(increased, crc_alarms)
+        if alarm_level:
+            new_value[each_counter]['alarm'] = alarm_level
+            new_value[each_counter]['increased'] = increased
+            alarmed = True
+    processed.append(new_value)
+    if alarmed:
+        alarm_items.append(new_value)
+    return processed, alarm_items
+
+
+def mds_interface_err_counter(datas, hostname, *args):
+    alarms = (100000, 5), (10000, 4), (1000, 3), (10, 2)
     processed = []
     alarm_items = []
     for d in datas:
         new_value = {}
         for k, v in d.items():
             new_value[k] = dict(value=v)
-            t = thresholds[hostname[2:4]]
-            if int(v) > t:
-                new_value[k]['alarm'] = 4
-                alarm_items.append(new_value)
+            if k != 'interface':
+                alarm_level = great_then(v, alarms)
+                if alarm_level:
+                    new_value[k]['alarm'] = alarm_level
+                    alarm_items.append(new_value)
         processed.append(new_value)
     return processed, alarm_items
 
@@ -318,5 +360,7 @@ methods = {
     'show module': module,
     'show inventory': inventory,
     'show hardware internal errors all': mds_asic_crc_err,
+    'show logging onboard error-stats': mds_onbord_err,
+    'show interface detail-counters",': mds_interface_err_counter,
     'show spanning-tree summary total | in vlans': n5k_logic,
 }

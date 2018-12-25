@@ -208,15 +208,19 @@
 			"command": "show hardware internal errors all",
 			"parser": [
 				"day2",
-				"parse_mds_crc_err"
+				"parse_mds_hardware_internal_error"
 			]
 		}, {
-			"command": "show logging onboard error-stats"
-		}, {
-			"command": "show interface",
+			"command": "show logging onboard error-stats",
 			"parser": [
-				"showparser",
-				"parse_interface"
+				"day2",
+				"parse_mds_logging_onboard_error_stats"
+			]
+		}, {
+			"command": "show interface detail-counters",
+			"parser": [
+				"day2",
+				"parse_mds_interface_detail_counters"
 			]
 		}]
 	},
