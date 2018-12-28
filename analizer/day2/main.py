@@ -2,6 +2,11 @@
 
 import json
 import os
+import time
+
+from collections import defaultdict
+
+import requests
 
 from ..tools import *
 from config import opj, PARSED_CLI_PATH, LAST_OUTPUT_DATA_PATH
@@ -275,16 +280,15 @@ def __get_last_mds_data(hostname, cmd):
     }
     try:
         with open(opj(LAST_OUTPUT_DATA_PATH, 'parsed', 'cli', 'main', '%s.json' % hostname)) as f:
-            data = json.load(f)
-        return data.get(cmd)[0]
+            return json.load(f).get(cmd)
     except:
-        return default_data
+        return [default_data]
 
 
 def mds_asic_crc_err(datas, hostname, *args):
     crc_alarms = (10000, 5), (1000, 4),  (10, 3), (0, 2)
     last_mds_dict = __get_last_mds_data(hostname,
-                                        'show hardware internal errors all')
+                                        'show hardware internal errors all')[0]
     alarm_items = []
     processed = []
     new_value = {}
@@ -305,27 +309,50 @@ def mds_asic_crc_err(datas, hostname, *args):
     return processed, alarm_items
 
 
-def mds_onbord_err(datas, hostname, *args):
-    alarms = (100000, 5), (10000, 4), (1000, 3), (10, 2)
-    last_mds_dict = __get_last_mds_data(hostname,
-                                        'show logging onboard error-stats')
-    alarm_items = []
-    processed = []
-    new_value = {}
-    check_counters = list(last_mds_dict.keys())
-    alarmed = False
-    for each_counter in check_counters:
-        old_value, current_value = last_mds_dict[each_counter], datas[0][each_counter]
-        increased = current_value - old_value
-        new_value[each_counter] = dict(value=current_value)
-        alarm_level = great_then(increased, crc_alarms)
-        if alarm_level:
-            new_value[each_counter]['alarm'] = alarm_level
-            new_value[each_counter]['increased'] = increased
-            alarmed = True
-    processed.append(new_value)
-    if alarmed:
-        alarm_items.append(new_value)
+def __get_mds_down_port_pair():
+    start = time.time() - 3600*24
+    all_down_interfaces = {}
+    path = opj(PARSED_CLI_PATH, 'main')
+    for fn in os.listdir(path):
+        with open(opj(path, fn)) as f:
+            rows = json.load(f).get(
+                'show logging log | begin "2019 " | grep "Link failure loss of signal')
+            if not rows:
+                continue
+        events = defaultdict(list)
+        for r in rows:
+            s = r['timestamp']
+            i = time.mktime(time.strptime(s, "%Y %b %d %H:%M:%S"))
+            if i < start:
+                continue
+            events[r['interface']].append(dict(int_time=i, str_time=s))
+        all_down_interfaces[fn[:-5]] = events
+    return all_down_interfaces
+
+
+mds_down_port_pair = __get_mds_down_port_pair()
+
+
+def mds_onboard_err(datas, hostname, *args):
+    cmd = 'show logging onboard error-stats'
+    onboard_alarms = (1000, 5), (100, 4),  (10, 3), (0, 2)
+    last_datas = __get_last_mds_data(hostname, cmd)
+    last_data_dict = {d['hostname']: d['onboard_err']
+                      for d in last_datas}
+    alarm_items, processed = [], []
+    for d in datas:
+        port = d['interface']
+        err_cnt = d['onboard_err']
+        new_value = dict(interface=port,
+                         onboard_err=dict(value=err_cnt))
+        if port not in mds_down_port_pair.get(hostname, {}):
+            old_err_cnt = last_data_dict.get(port, 0)
+            increased = err_cnt - old_err_cnt
+            alarm_level = great_then(increased, onboard_alarms)
+            if alarm_level:
+                new_value['onboard_err']['alarm'] = alarm_level
+                alarm_items.append(new_value)
+        processed.append(new_value)
     return processed, alarm_items
 
 
@@ -334,10 +361,15 @@ def mds_interface_err_counter(datas, hostname, *args):
     processed = []
     alarm_items = []
     for d in datas:
-        new_value = {}
+        port = d['interface']
+        new_value = dict(interface=port)
+        pair_down = port in mds_down_port_pair.get(hostname, {})
+
         for k, v in d.items():
-            new_value[k] = dict(value=v)
             if k != 'interface':
+                new_value[k] = dict(value=v)
+                if pair_down:
+                    continue
                 alarm_level = great_then(v, alarms)
                 if alarm_level:
                     new_value[k]['alarm'] = alarm_level
@@ -360,7 +392,7 @@ methods = {
     'show module': module,
     'show inventory': inventory,
     'show hardware internal errors all': mds_asic_crc_err,
-    'show logging onboard error-stats': mds_onbord_err,
+    'show logging onboard error-stats': mds_onboard_err,
     'show interface detail-counters",': mds_interface_err_counter,
     'show spanning-tree summary total | in vlans': n5k_logic,
 }

@@ -2,6 +2,10 @@
 
 import re
 
+re_mds_log_loss_of_signal = re.compile(
+    '(?P<timestamp>20\d+\s\w+\s\d+\s\d+:\d+:\d+)'
+    '\.\d+\s.*(?P<interface>fc\d+/\d+)', re.I)
+
 
 def attach_fex(text):
     try:
@@ -126,7 +130,7 @@ def parse_mds_logging_onboard_error_stats(text, *args, **kwargs):
             port_dict[name] = count
     datas = []
     for p in port_dict:
-        datas.append(dict(interface=p, onboard_err_cnt=port_dict[p]))
+        datas.append(dict(interface=p, onboard_err=port_dict[p]))
     return datas
 
 
@@ -178,3 +182,7 @@ def parse_mds_interface_detail_counters(text, *args, **kwargs):
                         frame_error=frame_error)
             datas.append(data)
     return datas
+
+
+def parse_mds_logging_loss_of_signal(text, *args, **kwargs):
+    return [m.groupdict() for m in re_mds_log_loss_of_signal.finditer(text)]

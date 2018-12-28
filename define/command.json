@@ -217,11 +217,21 @@
 				"parse_mds_logging_onboard_error_stats"
 			]
 		}, {
+			"command": "show logging log | begin \"2019 \" | grep \"Link failure loss of signal\"",
+			"parser": [
+				"day2",
+				"parse_mds_logging_loss_of_signal"
+			]
+		}, {
 			"command": "show interface detail-counters",
 			"parser": [
 				"day2",
 				"parse_mds_interface_detail_counters"
 			]
+		}, {
+			"command": "clear counters"
+		}, {
+			"command": ""
 		}]
 	},
 	{
