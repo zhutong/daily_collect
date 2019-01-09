@@ -3,7 +3,7 @@
 import re
 
 re_mds_log_loss_of_signal = re.compile(
-    '(?P<timestamp>20\d+\s\w+\s\d+\s\d+:\d+:\d+)'
+    '(?P<timestamp>20\d+\s\w+\s+\d+\s+\d+:\d+:\d+)'
     '\.\d+\s.*(?P<interface>fc\d+/\d+)', re.I)
 
 
@@ -143,10 +143,10 @@ def parse_mds_interface_detail_counters(text, *args, **kwargs):
             name = l.strip()
         elif not start:
             continue
-        elif 'class-f frames' in l and 'bytes received' in l:
-            if l.split()[0] == '0':
-                start = False
-                continue
+        elif '0 frames, 0 bytes received' in l:
+            start = False
+        elif l.startswith('port-channel'):
+            break
         elif 'link failures' in l:
             ss = l.split()
             link_fail = int(ss[0])

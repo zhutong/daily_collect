@@ -280,7 +280,7 @@ def __get_last_mds_data(hostname, cmd):
     }
     try:
         with open(opj(LAST_OUTPUT_DATA_PATH, 'parsed', 'cli', 'main', '%s.json' % hostname)) as f:
-            return json.load(f).get(cmd)
+            return json.load(f).get(cmd, [])
     except:
         return [default_data]
 
@@ -314,11 +314,13 @@ def __get_mds_down_port_pair():
     all_down_interfaces = {}
     path = opj(PARSED_CLI_PATH, 'main')
     for fn in os.listdir(path):
+        if '97SN' not in fn:
+            continue
         with open(opj(path, fn)) as f:
             rows = json.load(f).get(
-                'show logging log | begin "2019 " | grep "Link failure loss of signal')
-            if not rows:
-                continue
+                "show logging log | begin \"2019 \" | grep \"Link failure loss of signal\"")
+        if not rows:
+            continue
         events = defaultdict(list)
         for r in rows:
             s = r['timestamp']
@@ -326,7 +328,8 @@ def __get_mds_down_port_pair():
             if i < start:
                 continue
             events[r['interface']].append(dict(int_time=i, str_time=s))
-        all_down_interfaces[fn[:-5]] = events
+        if events:
+            all_down_interfaces[fn[:-5]] = events
     return all_down_interfaces
 
 
@@ -343,7 +346,7 @@ def mds_onboard_err(datas, hostname, *args):
     for d in datas:
         port = d['interface']
         err_cnt = d['onboard_err']
-        new_value = dict(interface=port,
+        new_value = dict(interface=dict(value=port),
                          onboard_err=dict(value=err_cnt))
         if port not in mds_down_port_pair.get(hostname, {}):
             old_err_cnt = last_data_dict.get(port, 0)
@@ -362,7 +365,7 @@ def mds_interface_err_counter(datas, hostname, *args):
     alarm_items = []
     for d in datas:
         port = d['interface']
-        new_value = dict(interface=port)
+        new_value = dict(interface=dict(value=port))
         pair_down = port in mds_down_port_pair.get(hostname, {})
 
         for k, v in d.items():
@@ -393,6 +396,6 @@ methods = {
     'show inventory': inventory,
     'show hardware internal errors all': mds_asic_crc_err,
     'show logging onboard error-stats': mds_onboard_err,
-    'show interface detail-counters",': mds_interface_err_counter,
+    'show interface detail-counters': mds_interface_err_counter,
     'show spanning-tree summary total | in vlans': n5k_logic,
 }
