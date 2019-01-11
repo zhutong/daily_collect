@@ -1,3 +1,5 @@
+# -*- coding:utf-8 -*-
+
 import json
 import logging
 import re
@@ -13,7 +15,7 @@ GET_MAIL_LIST_URL = '%sget_wl2_mail_list' % TOOLS_APP_URL
 SEND_MAIL_URL = '%ssend_mail' % TOOLS_APP_URL
 CLI_URL = 'http://127.0.0.1:8080/api/v1/sync/cli'
 CREDENTIAL_URL = 'http://127.0.0.1:8080/api/v1/credential'
-TEMPLATE_TOOL_URL = 'http://127.0.0.1:9116/apps/scenario_change/api/gen_device_config'
+TEMPLATE_TOOL_URL = 'http://127.0.0.1/apps/scenario_change/api/gen_device_config'
 
 PATH = '/data/jd7k_mac_check'
 CMD_FN = os.path.join(PATH, 'n7k_mac_check_cmd.json')
@@ -28,10 +30,7 @@ re_mac = re.compile('\w?\s+?(?P<vlan>\d+)\s+'
 re_slot = re.compile('(?P<fe>\d+)\s+\d+\s+\d+\s+(?P<bd>\d+)'
                      '\s+(?P<mac>\w+\.\w+\.\w+)\s+', re.I)
 
-body_template = u'''<!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
+body_template = u'''
         <style>
             h4 {
                 margin: 15px 0 0 0;
@@ -59,16 +58,13 @@ body_template = u'''<!DOCTYPE html>
                 color: white;
             }
         </style>
-    </head>
-
-    <body>
-        <h3>嘉定N7K未同步网关MAC地址</h3>
+        <h3>JD N7K UNSYNC MAC</h3>
         <table>
             <thead>
-                <th>设备名</th>
+                <th>Hostname</th>
                 <th>Missed MAC@Vlan</th>
                 <th>SLOT/FEs</th>
-                <th>持续2天</th>
+                <th>Last2Days</th>
             </thead>
             <tbody>'''
 
@@ -225,6 +221,8 @@ def create_files(missed_mac_dict, last_missed):
 
 def send_mail(body):
     receivers = requests.get(GET_MAIL_LIST_URL).json()['mail_list']
+    receivers.append('zhtong@cisco.com')
+    receivers.append('bozha@cisco.com')
     data = {
         "subject": "Day2: 嘉定N7K未同步的网关MAC",
         'body_html': body,
@@ -235,7 +233,7 @@ def send_mail(body):
     logging.info(res.text)
 
 
-DEPLOYED = False
+DEPLOYED = True
 
 if __name__ == '__main__':
     enable_pretty_logging()
@@ -259,8 +257,11 @@ if __name__ == '__main__':
             if missed_mac:
                 missed_mac_dict[hostname] = missed_mac
         # load last missed data
-        with open(LAST_MISSED_FN) as f:
-            last_missed = json.load(f)
+        try:
+            with open(LAST_MISSED_FN) as f:
+                last_missed = json.load(f)
+        except:
+            last_missed = {}
         # save today's data as last missed data
         with open(LAST_MISSED_FN, 'w') as f:
             json.dump(missed_mac_dict, f, indent=4)

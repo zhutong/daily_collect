@@ -90,10 +90,9 @@ def send_syslog(syslogs):
 def send_mail(alarms):
     body = Template(body_template).render(url=APP_URL,
                                           alarms=alarms)
-    # with open('/tmp/day2_summary.html', 'w') as f:
-    #     f.write(body)
-    # return
     receivers = requests.get(GET_MAIL_LIST_URL).json()['mail_list']
+    receivers.append('zhtong@cisco.com')
+    receivers.append('bozha@cisco.com')
 
     data = {
         'subject': '[健康检查] Day2问题摘要',
@@ -134,17 +133,33 @@ def main():
                   'RX_CRC_NOT_STOMPED')
     fex = {}
     n5k_logic = {}
-    mds_fields = ('F16_IPA_IPA0_CNT_BAD_CRC',
-                  'F16_IPA_IPA0_CNT_CORRUPT',
-                  'F16_IPA_IPA1_CNT_BAD_CRC',
-                  'F16_IPA_IPA1_CNT_CORRUPT',
-                  'INTERNAL_ERROR_CNT',
-                  'HIGH_IN_BUF_PKT_CRC_ERR_COUNT')
-    mds_counters = {}
+    mds_asic_fields = ('F16_IPA_IPA0_CNT_BAD_CRC',
+                       'F16_IPA_IPA0_CNT_CORRUPT',
+                       'F16_IPA_IPA1_CNT_BAD_CRC',
+                       'F16_IPA_IPA1_CNT_CORRUPT',
+                       'INTERNAL_ERROR_CNT',
+                       'HIGH_IN_BUF_PKT_CRC_ERR_COUNT')
+    mds_asic = {}
+    mds_port_fields = ('interface',
+                       'onboard_err',
+                       'sync_loss',
+                       'credit_loss',
+                       'signal_loss',
+                       'invalid_tx_words',
+                       'link_reset_rx',
+                       'link_reset_tx',
+                       'timeout_discard',
+                       'link_failure',
+                       'invalid_crc',
+                       'frame_error',
+                       'frame_discard')
+    mds_port = defaultdict(list)
     for_email = (('N7K', n7k_fields, n7k),
                  ('FEX', fex_fields, fex),
-                 ('MDC_ASIC', mds_fields, mds_counters),
+                 ('MDC_ASIC_COUNTERS', mds_asic_fields, mds_asic),
+                 ('MDC_PORT_COUNTERS', mds_port_fields, mds_port),
                  )
+    mds_port_tmp = defaultdict(dict)
     for alerts in all_alerts:
         for hostname, datas in alerts:
             # N7K alarms
@@ -180,7 +195,7 @@ def main():
             if one_n7k_info:
                 n7k[hostname] = [one_n7k_info]
 
-           # FEX alarms
+            # FEX alarms
             fex_pw = datas.get('attach fex')
             rows = []
             if fex_pw:
@@ -212,9 +227,31 @@ def main():
             if mds_crc:
                 for k, v in mds_crc[0].items():
                     if v.get('alarm', 0) > 1:
-                        mds_counters[hostname] = mds_crc
+                        mds_asic[hostname] = mds_crc
                         break
 
-    # update_day2_summary()
-    # send_mail(for_email)
+            # MDS PORT counters
+            port_counters = datas.get('show interface detail-counters', [])
+            for row in port_counters:
+                for k, v in row.items():
+                    if v.get('alarm', 0) > 1:
+                        mds_port_tmp[hostname][row['interface']['value']] = row
+                        break
+            # MDS Onbroad errors
+            mds_onboard = datas.get('show logging onboard error-stats', [])
+            for row in mds_onboard:
+                # print(row)
+                v = row['onboard_err']
+                if v.get('alarm', 0) > 2:
+                    i = row['interface']['value']
+                    if i in mds_port_tmp[hostname]:
+                        mds_port_tmp[hostname][i]['onboard_err'] = v
+                    else:
+                        mds_port_tmp[hostname][i] = {'onboard_err': v}
+    for h, ports in mds_port_tmp.items():
+        for i, p in ports.items():
+            p['interface'] = dict(value=i)
+            mds_port[h].append(p)
+    update_day2_summary()
+    send_mail(for_email)
     send_syslog(syslogs)
