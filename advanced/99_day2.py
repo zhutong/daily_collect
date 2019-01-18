@@ -91,8 +91,8 @@ def send_mail(alarms):
     body = Template(body_template).render(url=APP_URL,
                                           alarms=alarms)
     receivers = requests.get(GET_MAIL_LIST_URL).json()['mail_list']
-    receivers.append('zhtong@cisco.com')
-    receivers.append('bozha@cisco.com')
+    externals = 'icbc_mds@cisco.com', 'xiaoqingyang@eccom.com.cn'
+    receivers.extend(externals)
 
     data = {
         'subject': '[健康检查] Day2问题摘要',
@@ -156,8 +156,8 @@ def main():
     mds_port = defaultdict(list)
     for_email = (('N7K', n7k_fields, n7k),
                  ('FEX', fex_fields, fex),
-                 ('MDC_ASIC_COUNTERS', mds_asic_fields, mds_asic),
-                 ('MDC_PORT_COUNTERS', mds_port_fields, mds_port),
+                 ('MDS_ASIC_COUNTERS', mds_asic_fields, mds_asic),
+                 ('MDS_PORT_COUNTERS', mds_port_fields, mds_port),
                  )
     mds_port_tmp = defaultdict(dict)
     for alerts in all_alerts:
@@ -227,6 +227,7 @@ def main():
             if mds_crc:
                 for k, v in mds_crc[0].items():
                     if v.get('alarm', 0) > 1:
+                        mds_crc['value'] = mds_crc['increased']
                         mds_asic[hostname] = mds_crc
                         break
 
@@ -243,6 +244,7 @@ def main():
                 # print(row)
                 v = row['onboard_err']
                 if v.get('alarm', 0) > 2:
+                    v['value'] = v['increased']
                     i = row['interface']['value']
                     if i in mds_port_tmp[hostname]:
                         mds_port_tmp[hostname][i]['onboard_err'] = v

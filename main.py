@@ -465,7 +465,7 @@ def __analysis_one_device(hostname, data, all_methods):
                         alarm_dict[cmd] = alarm_items
             except:
                 logging.error('Analize error %s %s', hostname, cmd)
-                # raise
+                raise
     return hostname, alarm_dict
 
 

@@ -302,10 +302,8 @@ def mds_asic_crc_err(datas, hostname, *args):
         if alarm_level:
             new_value[each_counter]['alarm'] = alarm_level
             new_value[each_counter]['increased'] = increased
-            alarmed = True
+            alarm_items.append(new_value)
     processed.append(new_value)
-    if alarmed:
-        alarm_items.append(new_value)
     return processed, alarm_items
 
 
@@ -340,7 +338,7 @@ def mds_onboard_err(datas, hostname, *args):
     cmd = 'show logging onboard error-stats'
     onboard_alarms = (1000, 5), (100, 4),  (10, 3), (0, 2)
     last_datas = __get_last_mds_data(hostname, cmd)
-    last_data_dict = {d['hostname']: d['onboard_err']
+    last_data_dict = {d['interface']: d['onboard_err']
                       for d in last_datas}
     alarm_items, processed = [], []
     for d in datas:
@@ -354,6 +352,7 @@ def mds_onboard_err(datas, hostname, *args):
             alarm_level = great_then(increased, onboard_alarms)
             if alarm_level:
                 new_value['onboard_err']['alarm'] = alarm_level
+                new_value['onboard_err']['increased'] = increased
                 alarm_items.append(new_value)
         processed.append(new_value)
     return processed, alarm_items

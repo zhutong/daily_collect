@@ -122,7 +122,8 @@ def parse_mds_hardware_internal_error(text, *args, **kwargs):
 def parse_mds_logging_onboard_error_stats(text, *args, **kwargs):
     port_dict = {}
     for l in text.splitlines():
-        if l.startswith('fc'):
+        # if l.startswith('fc'):
+        if 'BAD_WORDS_FROM_DECODER' in l:
             ss = l.split('|')
             name, count = ss[0].strip(), int(ss[2].strip())
             if name in port_dict:
