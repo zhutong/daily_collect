@@ -10,6 +10,42 @@ from config import *
 re_port = re.compile('Ethernet(\d+)/(\d+)$')
 
 config_file = '/tmp/missed_vlan.txt'
+table_file = '/tmp/missed_vlan_table.json'
+
+
+body_part = u'''
+        <style>
+            h4 {
+                margin: 15px 0 0 0;
+            }
+            table {
+                width: 100%;
+                max-width: 100%;
+                border: 1px solid #aaaaaa;
+                border-spacing: 0;
+                border-collapse: collapse;
+                margin: 3px 0;
+            }
+            th {
+                color: white;
+                background-color: #337ab7;
+            }
+            th,
+            td {
+                text-align: center;
+                line-height: 1.5;
+                border: 1px solid #aaaaaa;
+            }
+        </style>
+        <h4>Missed VLAN Table</h4>
+        <table>
+            <thead>
+                <th>Site</th>
+                <th>Zone</th>
+                <th>Vlan</th>
+                <th>Hostnames</th>
+            </thead>
+            <tbody>'''
 
 
 def __get_device_info():
@@ -85,11 +121,39 @@ def create_vlan_config(missed):
         f.write(config)
 
 
-def send_mail():
+def create_vlan_table(missed_vlan_list):
+    vlan_dict = defaultdict(list)
+    for hostname, vlans in missed_vlan_list:
+        site = hostname[:2]
+        zone = hostname.split('-')[1]
+        for v in vlans:
+            vlan_dict[(site, zone, v)].append(hostname)
+
+    html_lines = []
+    vlans = list(vlan_dict.keys())
+    vlans.sort()
+    for site, zone, v in vlans:
+        hostnames = vlan_dict[(site, zone, v)]
+        html_lines.append('<tr>')
+        html_lines.append('<td>%s</td>' % site)
+        html_lines.append('<td>%s</td>' % zone)
+        html_lines.append('<td>%s</td>' % v)
+        html_lines.append('<td>%s</td>' % ', '.join(hostnames))
+        html_lines.append('<tr>')
+
+    html_lines.append('</tbody></table>')
+    mail_body = body_part + '\n'.join(html_lines)
+    # with open('/tmp/test.html', 'w') as f:
+    #     f.write(mail_body)
+    return mail_body
+
+
+def send_mail(mail_body):
     receivers = requests.get(GET_MAIL_LIST_URL).json()['mail_list']
     data = {
         "subject": "并行任务脚本 - 添加缺失的VLANs",
         "body_plain": "你好！\n\n请审阅附件。",
+        'body_html': mail_body,
         "attach": [config_file],
         "receivers": receivers,
     }
@@ -140,4 +204,5 @@ def main():
                               f, indent=4)
                 missed_vlan_list.append((hostname, missed_vlan))
     create_vlan_config(missed_vlan_list)
-    send_mail()
+    mail_body = create_vlan_table(missed_vlan_list)
+    send_mail(mail_body)

@@ -141,6 +141,7 @@ def main():
                        'HIGH_IN_BUF_PKT_CRC_ERR_COUNT')
     mds_asic = {}
     mds_port_fields = ('interface',
+                       'rx_power',
                        'onboard_err',
                        'sync_loss',
                        'credit_loss',
@@ -238,6 +239,17 @@ def main():
                     if v.get('alarm', 0) > 1:
                         mds_port_tmp[hostname][row['interface']['value']] = row
                         break
+            # MDS PORT RX Power
+            if 'NF97SN' in hostname or 'JD97SN' in hostname:
+                port_trans = datas.get('show interface trans detail', [])
+                for row in port_trans:
+                    v = row['rx_pwr']
+                    if v.get('alarm', 0) >= 2:
+                        i = row['interface']['value']
+                        if i in mds_port_tmp[hostname]:
+                            mds_port_tmp[hostname][i]['rx_power'] = v
+                        else:
+                            mds_port_tmp[hostname][i] = {'rx_power': v}
             # MDS Onbroad errors
             mds_onboard = datas.get('show logging onboard error-stats', [])
             for row in mds_onboard:

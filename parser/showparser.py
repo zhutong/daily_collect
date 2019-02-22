@@ -300,12 +300,12 @@ def parse_transceiver_re(text, *args, **kwargs):
 
 
 def parse_transceiver(text, *args, **kwargs):
-    re_eth = re.compile('(?P<interface>(\S+)?Eth\S+[\d/]+)')
+    re_interface = re.compile('((\S+)?Eth\S+|fc)[\d/]+')
     ports = []
     port = None
     for l in text.splitlines():
-        if re.match(re_eth, l):
-            port = dict(interface=l.strip())
+        if re.match(re_interface, l):
+            port = dict(interface=l.split()[0])
         elif 'sfp is not present' in l:
             port = None
         elif 'DOM is not supported' in l:

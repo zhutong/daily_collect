@@ -3,13 +3,14 @@
 import json
 import os
 import time
+import logging
 
 from collections import defaultdict
 
 import requests
 
 from ..tools import *
-from config import opj, PARSED_CLI_PATH, LAST_OUTPUT_DATA_PATH
+from config import opj, PARSED_SNMP_PATH, PARSED_CLI_PATH, LAST_OUTPUT_DATA_PATH
 
 
 def login(datas, *args):
@@ -96,7 +97,23 @@ def __get_down_interfaces():
     return all_down_interfaces
 
 
-down_interfaces = __get_down_interfaces()
+def __get_down_interfaces_snmp():
+    all_down_interfaces = {}
+    path = opj(PARSED_SNMP_PATH, 'pre')
+    for fn in os.listdir(path):
+        with open(opj(path, fn)) as f:
+            data = json.load(f).get('if_table')
+            if not data:
+                continue
+            down_interfaces = []
+            for r in data:
+                if r['operStatus'] == 'down':
+                    down_interfaces.append(r['ifDescr'])
+            all_down_interfaces[fn[:-5]] = down_interfaces
+    return all_down_interfaces
+
+
+down_interfaces = __get_down_interfaces_snmp()
 
 
 def interface_trans(datas, hostname, *args):
@@ -109,12 +126,25 @@ def interface_trans(datas, hostname, *args):
             continue
         new_value = {}
         for k, v in d.items():
-            new_value[k] = dict(value=v)
             if k != 'interface':
+                try:
+                    v1 = float(v.split()[0])
+                except:
+                    v1 = v
+                new_value[k] = dict(value=v1)
                 alarm_level = contains(v, alarms)
                 if alarm_level:
                     new_value[k]['alarm'] = alarm_level
                     alarm_items.append(new_value)
+                elif '97SN' in hostname and k == 'rx_pwr':
+                    try:
+                        if v1 > 1 or v1 < -6:
+                            new_value[k]['alarm'] = 2
+                            alarm_items.append(new_value)
+                    except:
+                        pass
+            else:
+                new_value[k] = dict(value=v)
         processed.append(new_value)
     return processed, alarm_items
 
@@ -178,8 +208,7 @@ def __get_last_fex_data(hostname):
         for d in data:
             fex[d['fex']] = d
     except:
-        print(hostname)
-        pass
+        logging.warning('No last fex data: %s', hostname)
     return fex
 
 
@@ -270,19 +299,19 @@ def inventory(datas, *args):
 
 
 def __get_last_mds_data(hostname, cmd):
-    default_data = {
+    default_data = [{
         "F16_IPA_IPA0_CNT_BAD_CRC": 0,
         "F16_IPA_IPA0_CNT_CORRUPT": 0,
         "F16_IPA_IPA1_CNT_BAD_CRC": 0,
         "F16_IPA_IPA1_CNT_CORRUPT": 0,
         "INTERNAL_ERROR_CNT": 0,
         "HIGH_IN_BUF_PKT_CRC_ERR_COUNT": 0
-    }
+    }]
     try:
         with open(opj(LAST_OUTPUT_DATA_PATH, 'parsed', 'cli', 'main', '%s.json' % hostname)) as f:
-            return json.load(f).get(cmd, [])
+            return json.load(f).get(cmd, default_data)
     except:
-        return [default_data]
+        return default_data
 
 
 def mds_asic_crc_err(datas, hostname, *args):
@@ -332,22 +361,34 @@ def __get_mds_down_port_pair():
 
 
 mds_down_port_pair = __get_mds_down_port_pair()
+MDS_ONBOARD_FN = '/data/mds_onboard_err/last_mds_onboard_%s.json'
+
+
+def __get_last_mds_onboard(hostname):
+    try:
+        with open(MDS_ONBOARD_FN % hostname) as f:
+            return json.load(f)
+    except:
+        return {}
+
+
+def __save_last_mds_onboard(hostname, data):
+    with open(MDS_ONBOARD_FN % hostname, 'w') as f:
+        json.dump(data, f, indent=4)
 
 
 def mds_onboard_err(datas, hostname, *args):
     cmd = 'show logging onboard error-stats'
     onboard_alarms = (1000, 5), (100, 4),  (10, 3), (0, 2)
-    last_datas = __get_last_mds_data(hostname, cmd)
-    last_data_dict = {d['interface']: d['onboard_err']
-                      for d in last_datas}
     alarm_items, processed = [], []
+    last_onboard = __get_last_mds_onboard(hostname)
     for d in datas:
         port = d['interface']
         err_cnt = d['onboard_err']
         new_value = dict(interface=dict(value=port),
                          onboard_err=dict(value=err_cnt))
         if port not in mds_down_port_pair.get(hostname, {}):
-            old_err_cnt = last_data_dict.get(port, 0)
+            old_err_cnt = last_onboard.get(port, 0)
             increased = err_cnt - old_err_cnt
             alarm_level = great_then(increased, onboard_alarms)
             if alarm_level:
@@ -355,6 +396,8 @@ def mds_onboard_err(datas, hostname, *args):
                 new_value['onboard_err']['increased'] = increased
                 alarm_items.append(new_value)
         processed.append(new_value)
+        last_onboard[port] = err_cnt
+    __save_last_mds_onboard(hostname, last_onboard)
     return processed, alarm_items
 
 
