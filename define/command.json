@@ -114,6 +114,13 @@
 				"dbgexec satctrl env show-ps",
 				"dbgexec satctrl env show-ps-la",
 				"show platform software {code_name} rmon 0 ni0",
+				"show platform software {code_name} rmon 0 ni1",
+				"show platform software {code_name} rmon 0 ni2",
+				"show platform software {code_name} rmon 0 ni3",
+				"show platform software {code_name} rmon 0 ni4",
+				"show platform software {code_name} rmon 0 ni5",
+				"show platform software {code_name} rmon 0 ni6",
+				"show platform software {code_name} rmon 0 ni7",
 				"exit"
 			],
 			"parser": [

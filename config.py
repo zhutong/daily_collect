@@ -12,7 +12,7 @@ CLI_COLLECTOR_URL = 'http://%s:8080/api/v1/sync/cli' % IP
 SNMP_COLLECTOR_URL = 'http://%s:8080/api/v1/sync/snmp' % IP
 DEVICE_INFO_URL = '%sdevice_center/api/device_list' % APP_URL
 DEVICE_FILTER_URL = '%sdevice_center/api/filter_device?' % APP_URL
-GET_MAIL_LIST_URL = '%stools/api/get_wl2_mail_list' % APP_URL
+GET_MAIL_LIST_URL = '%stools/api/get_wl_mail_list_by_tag?tag=wl1' % APP_URL
 SEND_MAIL_URL = '%stools/api/send_mail' % APP_URL
 SEND_RAW_SYSLOG_URL = '%stools/api/send_raw_syslog' % APP_URL
 SEND_CPE_SYSLOG_URL = '%stools/api/send_cpe_syslog' % APP_URL

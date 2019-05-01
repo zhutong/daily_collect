@@ -13,7 +13,9 @@ MAC_FE_FILE = '/data/jd7k_mac_check/n7k_mac_fe.json'
 CHECK_CMD_FILE = '/data/jd7k_mac_check/n7k_mac_check_cmd.json'
 F5_GW_MAC_FILE = '/data/jd7k_mac_check/f5_mac.json'
 L3_PORT_FILE = '/tmp/l3_interface.json'
-CHECK_CMD = 'show hardware mac address-table {slot}'
+CHECK_SOFTWARE_CMD = 'show mac address-table {slot}'
+CHECK_HARDWARE_CMD = 'show hardware mac address-table {slot}'
+CHECK_CONSYSTENCY_CMD = 'show forwarding consistnecy l2 {slot}'
 
 
 special_hsrp_mac = {
@@ -48,11 +50,15 @@ def get_module_chip(ports, down_ports):
 def create_check_script(n7k_module_chips):
     commands = {}
     for n7k, data in n7k_module_chips.items():
+        is_nf = n7k.startswith('NF70SW') and '-B6' not in n7k
         lines = []
         lines.append('show vlan internal bd-info vlan-to-bd all-vlan')
         lines.append('show mac address-table')
         for s in data['slots']:
-            lines.append(CHECK_CMD.format(slot=s))
+            lines.append(CHECK_SOFTWARE_CMD.format(slot=s))
+            # lines.append(CHECK_HARDWARE_CMD.format(slot=s))
+            # if is_nf:
+            #     lines.append(CHECK_CONSYSTENCY_CMD.format(slot=s))
         commands[n7k] = lines
     return commands
 

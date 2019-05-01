@@ -167,7 +167,7 @@ def n7k_slot_flash(datas, *args):
 
 
 def n7k_log_space(datas, *args):
-    alarms = (80, 4), (70, 3)
+    alarms = (99, 4), (95, 3)
     processed = []
     alarm_items = []
     for d in datas:

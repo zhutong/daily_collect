@@ -6,16 +6,18 @@ import re
 import os
 import time
 from collections import defaultdict
+from multiprocessing.dummy import Pool
 
 import requests
 from tornado.log import enable_pretty_logging
 
 TOOLS_APP_URL = 'http://127.0.0.1/apps/tools/api/'
-GET_MAIL_LIST_URL = '%sget_wl2_mail_list' % TOOLS_APP_URL
+GET_MAIL_LIST_URL = '%sget_wl_mail_list_by_tag?tag=wl1' % TOOLS_APP_URL
 SEND_MAIL_URL = '%ssend_mail' % TOOLS_APP_URL
+SEND_CPE_SYSLOG_URL = '%ssend_cpe_syslog' % TOOLS_APP_URL
 CLI_URL = 'http://127.0.0.1:8080/api/v1/sync/cli'
 CREDENTIAL_URL = 'http://127.0.0.1:8080/api/v1/credential'
-TEMPLATE_TOOL_URL = 'http://127.0.0.1/apps/scenario_change/api/gen_device_config'
+# TEMPLATE_TOOL_URL = 'http://127.0.0.1/apps/scenario_change/api/gen_device_config'
 
 PATH = '/data/jd7k_mac_check'
 CMD_FN = os.path.join(PATH, 'n7k_mac_check_cmd.json')
@@ -111,24 +113,33 @@ def __is_not_today(full_fn, seconds):
     return (time.time() - m_time) > seconds
 
 
+def __collect(param):
+    h = param['hostname']
+    logging.info('Collect %s', h)
+    try:
+        res = requests.post(CLI_URL, json=param)
+        if res.status_code == 200:
+            data = res.json()
+            with open(os.path.join(PATH, 'O__%s.json' % h), 'w') as f:
+                json.dump(data, f, indent=4)
+        else:
+            raise
+    except:
+        logging.error('Collect %s failed', h)
+
+
 def collect(n7k_module_chips):
     logging.info('Start collecting')
     with open(CMD_FN) as f:
         commands = json.load(f)
-
+    pool = Pool(4)
+    params = []
     for h, c in commands.items():
-        logging.info('Collect %s', h)
-        params = dict(hostname=h, commands=c, wait=5)
-        try:
-            res = requests.post(CLI_URL, json=params)
-            if res.status_code == 200:
-                data = res.json()
-                with open(os.path.join(PATH, 'O__%s.json' % h), 'w') as f:
-                    json.dump(data, f, indent=4)
-            else:
-                raise
-        except:
-            logging.error('Collect failed')
+        p = dict(hostname=h, commands=c, wait=5)
+        params.append(p)
+    pool.map(__collect, params)
+    pool.close()
+    pool.join()
     logging.info('Finish collecting')
 
 
@@ -172,7 +183,7 @@ def check(n7k_module_chips, hostname, fn):
     return missed_mac
 
 
-def create_files(missed_mac_dict, last_missed):
+def create_mail_and_syslog(missed_mac_dict, last_missed):
     html_lines = []
     scripts = defaultdict(list)
 
@@ -199,41 +210,53 @@ def create_files(missed_mac_dict, last_missed):
     n7k_list = []
     res = requests.get(CREDENTIAL_URL)
     devices = res.json()['device_info']
+    syslogs = []
     for hostname, macs in scripts.items():
         device = devices[hostname]
         ip = device['ip']
-        method = device.get('method', 'ssh') or 'ssh'
-        mac_list = []
-        for mac in macs:
-            m, v = mac.split('@')
-            mac_list.append(dict(vlan=v, mac=m))
-        n7k_list.append(dict(hostname=hostname,
-                             ip=ip,
-                             method=method,
-                             mac_list=mac_list))
-    data = dict(template_id='N7K清除MAC', data=dict(n7k_list=n7k_list))
-    res = requests.post(TEMPLATE_TOOL_URL, json=data)
-    with open(os.path.join(PATH, CLEAR_SCRIPT_FN), 'w') as f:
-        f.write(res.json()['config'])
+        content = '%s MAC not sync: [%s]' % (hostname, '; '.join(macs))
+        item = dict(cpe_name='N7K',
+                    alert_group='N7K-5-MAC_NOT_SYNC',
+                    level=7,
+                    ip=ip,
+                    content=content)
+        syslogs.append(item)
+    #     method = device.get('method', 'ssh') or 'ssh'
+    #     mac_list = []
+    #     for mac in macs:
+    #         m, v = mac.split('@')
+    #         mac_list.append(dict(vlan=v, mac=m))
+    #     n7k_list.append(dict(hostname=hostname,
+    #                          ip=ip,
+    #                          method=method,
+    #                          mac_list=mac_list))
+    # data = dict(template_id='N7K清除MAC', data=dict(n7k_list=n7k_list))
+    # res = requests.post(TEMPLATE_TOOL_URL, json=data)
+    # with open(os.path.join(PATH, CLEAR_SCRIPT_FN), 'w') as f:
+    #     f.write(res.json()['config'])
 
-    return mail_body
+    return mail_body, syslogs
+
+
+def send_syslog(syslogs):
+    for s in syslogs:
+        requests.post(SEND_CPE_SYSLOG_URL, json.dumps(s))
 
 
 def send_mail(body):
     receivers = requests.get(GET_MAIL_LIST_URL).json()['mail_list']
-    receivers.append('zhtong@cisco.com')
-    receivers.append('bozha@cisco.com')
+    receivers.append('icbc_mds@cisco.com')
     data = {
         "subject": "Day2: 嘉定N7K未同步的网关MAC",
         'body_html': body,
         "receivers": receivers,
-        "attach": [CLEAR_SCRIPT_FN]
+        # "attach": [CLEAR_SCRIPT_FN]
     }
     res = requests.post(SEND_MAIL_URL, data=json.dumps(data))
     logging.info(res.text)
 
 
-DEPLOYED = True
+DEPLOYED = True and 0
 
 if __name__ == '__main__':
     enable_pretty_logging()
@@ -265,6 +288,8 @@ if __name__ == '__main__':
         # save today's data as last missed data
         with open(LAST_MISSED_FN, 'w') as f:
             json.dump(missed_mac_dict, f, indent=4)
-        mail_body = create_files(missed_mac_dict, last_missed)
+        mail_body, syslogs = create_mail_and_syslog(missed_mac_dict,
+                                                    last_missed)
         if DEPLOYED and missed_mac_dict:
             send_mail(mail_body)
+            send_syslog(syslogs)

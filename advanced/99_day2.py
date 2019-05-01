@@ -43,7 +43,7 @@ body_template = '''
             background-color: #fedd8e;
         }
     </style>
-    <h3><a href="{{url}}day2/index.html">Day2问题摘要</a></h3>
+    <h3><a href="http://76.7.3.54/apps/day2/index.html">Day2问题摘要</a></h3>
     {% for name, fields, alarm in alarms %}
     {% if alarm.items() %}
     <h4>{{ name }}</h4>
@@ -88,8 +88,7 @@ def send_syslog(syslogs):
 
 
 def send_mail(alarms):
-    body = Template(body_template).render(url=APP_URL,
-                                          alarms=alarms)
+    body = Template(body_template).render(alarms=alarms)
     receivers = requests.get(GET_MAIL_LIST_URL).json()['mail_list']
     externals = 'icbc_mds@cisco.com', 'xiaoqingyang@eccom.com.cn'
     receivers.extend(externals)
@@ -110,7 +109,6 @@ def update_day2_summary():
 
 
 def main():
-    logging.info('Send alert syslog and email')
     devices = __get_device_info()
     with open(DAILY_ALARMED_FN) as f:
         all_alerts = json.load(f)
@@ -186,7 +184,7 @@ def main():
                                 level=7,
                                 ip=devices[hostname]['ip'],
                                 content=content)
-                    syslogs.append(item)
+                    # syslogs.append(item)
                     one_n7k_info.update(n7k_slot_flash[0])
 
             n7k_tacacs_mem = datas.get('show processes memory | in taca')
@@ -208,7 +206,7 @@ def main():
                                 hostname, fex_id, i)
                             item = dict(cpe_name='N2K',
                                         alert_group='N2K-3-POWER_FAIL',
-                                        level=7,
+                                        level=6,
                                         ip=devices[hostname]['ip'],
                                         content=content)
                             syslogs.append(item)
@@ -228,7 +226,7 @@ def main():
             if mds_crc:
                 for k, v in mds_crc[0].items():
                     if v.get('alarm', 0) > 1:
-                        mds_crc['value'] = mds_crc['increased']
+                        v['value'] = v['increased']
                         mds_asic[hostname] = mds_crc
                         break
 
@@ -267,5 +265,7 @@ def main():
             p['interface'] = dict(value=i)
             mds_port[h].append(p)
     update_day2_summary()
-    send_mail(for_email)
     send_syslog(syslogs)
+    logging.info('Syslog sent')
+    send_mail(for_email)
+    logging.info('Email sent')

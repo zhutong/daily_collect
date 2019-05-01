@@ -1,5 +1,5 @@
 [{
-    "devices": ["NF|JD|TG !snmp-fail !NF55AC !-N3"],
+    "devices": ["NF|JD|TG !NF55AC !-N3"],
     "collections": [{
         "name": "if_table",
         "oids": [
@@ -19,7 +19,7 @@
         ]
     }]
 }, {
-    "devices": ["NF|JD|TG !snmp-fail !NF55AC !NF55AC !-N3"],
+    "devices": ["NF|JD|TG !NF55AC !NF55AC !-N3"],
     "collections": [{
         "name": "if_ip_table",
         "oids": [
@@ -33,7 +33,7 @@
         ]
     }]
 }, {
-    "devices": ["NF|JD|TG CISCO|IOS|NXOS !snmp-fail !NF55AC !NF55AC !-N3"],
+    "devices": ["NF|JD|TG CISCO|IOS|NXOS !NF55AC !NF55AC !-N3"],
     "collections": [{
         "name": "cdp_table",
         "oids": [
