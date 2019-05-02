@@ -17,7 +17,6 @@ SEND_MAIL_URL = '%ssend_mail' % TOOLS_APP_URL
 SEND_CPE_SYSLOG_URL = '%ssend_cpe_syslog' % TOOLS_APP_URL
 CLI_URL = 'http://127.0.0.1:8080/api/v1/sync/cli'
 CREDENTIAL_URL = 'http://127.0.0.1:8080/api/v1/credential'
-# TEMPLATE_TOOL_URL = 'http://127.0.0.1/apps/scenario_change/api/gen_device_config'
 
 PATH = '/data/jd7k_mac_check'
 CMD_FN = os.path.join(PATH, 'n7k_mac_check_cmd.json')
@@ -28,7 +27,7 @@ CLEAR_SCRIPT_FN = os.path.join(PATH, 'clear_mac_script.txt')
 
 re_bd = re.compile('\d+\s+(?P<vlan>\d+)\s+(?P<bd>\d+)')
 re_mac = re.compile('\w?\s+?(?P<vlan>\d+)\s+'
-                    '(?P<mac>\w+\.\w+\.\w+)\s+dynamic\s+.*', re.I)
+                    '(?P<mac>\w+\.\w+\.\w+)\s+dynamic\s+.*(?P<port>)', re.I)
 re_slot = re.compile('(?P<fe>\d+)\s+\d+\s+\d+\s+(?P<bd>\d+)'
                      '\s+(?P<mac>\w+\.\w+\.\w+)\s+', re.I)
 
@@ -85,7 +84,7 @@ def __parse_bd(text):
 def __parse_mac(text):
     mac_dict = defaultdict(set)
     for m in re_mac.finditer(text):
-        vlan, mac = m.groups()
+        vlan, mac, port = m.groups()
         mac_dict[vlan].add(mac)
     return mac_dict
 
@@ -150,20 +149,22 @@ def check(n7k_module_chips, hostname, fn):
             data = json.load(f)
         missed_mac = defaultdict(list)
         fe_bd_mac_dict = {}
+        slot_sw_mac_dict = {}
         for o in data['output']:
             cmd = o['command']
             txt = o['output']
             if 'vlan' in cmd:
                 bd_dict = __parse_bd(txt)
             elif cmd == 'show mac address-table':
-                mac_dict = __parse_mac(txt)
+                global_mac_dict = __parse_mac(txt)
+            elif cmd.startswith('show mac address-table '):
+                slot_sw_mac_dict[cmd.split()[-1]] = __parse_mac(txt)
             else:
-                slot = cmd.split()[-1]
                 slot_mac_dict = __parse_slot_mac(hostname, txt, bd_dict)
-                fe_bd_mac_dict[slot] = slot_mac_dict
+                fe_bd_mac_dict[cmd.split()[-1]] = slot_mac_dict
         for fe_mac in n7k_module_chips[hostname]['fe']:
             vlan = fe_mac['vlan']
-            macs = mac_dict[vlan]
+            macs = global_mac_dict[vlan]
             vlan_gw_macs = set(
                 [m for m in macs if m.startswith(GW_MAC_PREFIXES)])
             if not vlan_gw_macs:

@@ -15,25 +15,10 @@ F5_GW_MAC_FILE = '/data/jd7k_mac_check/f5_mac.json'
 L3_PORT_FILE = '/tmp/l3_interface.json'
 CHECK_SOFTWARE_CMD = 'show mac address-table {slot}'
 CHECK_HARDWARE_CMD = 'show hardware mac address-table {slot}'
-CHECK_CONSYSTENCY_CMD = 'show forwarding consistnecy l2 {slot}'
+CHECK_CONSYSTENCY_CMD = 'show forwarding consistency l2 {slot}'
 
 
-special_hsrp_mac = {
-    ('I1', '1650'): '0000.0c07.ac41',
-    ('B3', '1300'): '0000.0c07.ac0d',
-    ('B3', '1238'): '0000.0c07.ac37',
-    ('M2', '1870'): '0000.0c07.ac01',
-    ('M2', '1887'): '0000.0c07.ac58',
-    ('B5', '1487'): '0000.0c07.ac59'
-}
-
-
-def get_hsrp_mac(zone, vlan):
-    mac = '0000.0c07.ac%02x' % int(vlan[-2:])
-    return special_hsrp_mac.get((zone, vlan), mac)
-
-
-def get_module_chip(ports, down_ports):
+def get_module_chip(ports, down_ports, m1):
     data = defaultdict(list)
     slots = []
     for p in ports:
@@ -43,38 +28,40 @@ def get_module_chip(ports, down_ports):
         if r:
             slot, port = r.groups()
             slots.append(slot)
-            data[slot].append((int(port)-1)//4)
-    return slots, [dict(slot=s, chips=list(set(data[s]))) for s in data]
+            if m1:
+                data[slot].append(0)
+            else:
+                data[slot].append((int(port)-1)//4)
+    # return slots, [dict(slot=s, chips=list(set(data[s]))) for s in data]
+    return slots, {s: list(set(data[s])) for s in data}
 
 
-def create_check_script(n7k_module_chips):
-    commands = {}
-    for n7k, data in n7k_module_chips.items():
-        is_nf = n7k.startswith('NF70SW') and '-B6' not in n7k
-        lines = []
-        lines.append('show vlan internal bd-info vlan-to-bd all-vlan')
-        lines.append('show mac address-table')
-        for s in data['slots']:
-            lines.append(CHECK_SOFTWARE_CMD.format(slot=s))
-            # lines.append(CHECK_HARDWARE_CMD.format(slot=s))
-            # if is_nf:
-            #     lines.append(CHECK_CONSYSTENCY_CMD.format(slot=s))
-        commands[n7k] = lines
-    return commands
+def check_command(n7k, slots, m1):
+    lines = []
+    lines.append('show vlan internal bd-info vlan-to-bd all-vlan')
+    lines.append('show mac address-table')
+    for s in slots:
+        lines.append(CHECK_SOFTWARE_CMD.format(slot=s))
+        lines.append(CHECK_HARDWARE_CMD.format(slot=s))
+        if m1:
+            lines.append(CHECK_CONSYSTENCY_CMD.format(slot=s))
+    return lines
 
 
 def main():
     logging.info('Analysis N7K MAC')
     n7k_module_chips = {}
+    commands = {}
     path = opj(PARSED_CLI_PATH, 'main')
     for fn in os.listdir(path):
         hostname = fn[:-5]
-        if not hostname.startswith('JD70SW'):
+        if 'JD70SW' not in hostname and 'NF70SW' not in hostname:
             continue
-        if '0A-' in hostname or '0B-' in hostname:
-            continue
+        # if '0A-' in hostname or '0B-' in hostname:
+        #     continue
         if 'VDC1' in hostname or 'C0' in hostname:
             continue
+        is_M1 = hostname.startswith('NF70SW') and ('-B6' not in hostname)
         with open(opj(path, fn)) as f:
             data = json.load(f)
         ports = data.get('show interface status', [])
@@ -82,20 +69,22 @@ def main():
                       for p in ports if p['status'] != 'connected']
         vlans = data.get('show vlan brief', [])
         all_slots = []
-        module_chips = []
+        # module_chips = []
+        module_chips = {}
         for v in vlans[1:]:
-            slots, chips = get_module_chip(v['ports'], down_ports)
+            slots, chips = get_module_chip(v['ports'], down_ports, is_M1)
             all_slots.extend(slots)
-            module_chips.append(dict(vlan=v['id'], chips=chips))
+            # module_chips.append(dict(vlan=v['id'], chips=chips))
+            module_chips[v['id']] = chips
         slots = sorted(list(set(all_slots)), key=lambda x: int(x))
         if not slots:
             continue
-        n7k_module_chips[hostname] = dict(
-            slots=slots, fe=module_chips)
-
-    commands = create_check_script(n7k_module_chips)
+        # n7k_module_chips[hostname] = dict(
+        #     slots=slots, fe=module_chips)
+        n7k_module_chips[hostname] = module_chips
+        commands[hostname] = check_command(hostname, slots, is_M1)
     with open(MAC_FE_FILE, 'w') as f:
-        json.dump(n7k_module_chips, f, indent=4)
+        json.dump(n7k_module_chips, f)
     with open(CHECK_CMD_FILE, 'w') as f:
         json.dump(commands, f, indent=4)
 
