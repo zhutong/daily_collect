@@ -9,9 +9,9 @@ from config import *
 
 re_port = re.compile('Ethernet(\d+)/(\d+)$')
 
-MAC_FE_FILE = '/data/jd7k_mac_check/n7k_mac_fe.json'
-CHECK_CMD_FILE = '/data/jd7k_mac_check/n7k_mac_check_cmd.json'
-F5_GW_MAC_FILE = '/data/jd7k_mac_check/f5_mac.json'
+MAC_FE_FILE = '/data/n7k_mac_check/n7k_mac_fe.json'
+CHECK_CMD_FILE = '/data/n7k_mac_check/n7k_mac_check_cmd.json'
+F5_GW_MAC_FILE = '/data/n7k_mac_check/f5_mac.json'
 L3_PORT_FILE = '/tmp/l3_interface.json'
 CHECK_SOFTWARE_CMD = 'show mac address-table {slot}'
 CHECK_HARDWARE_CMD = 'show hardware mac address-table {slot}'
