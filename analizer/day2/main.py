@@ -79,6 +79,29 @@ def interface_status(datas, *args):
     return processed, alarm_items
 
 
+def mds_interface_brief(datas, *args):
+    alarms = (
+        (('errDisabled',
+          'faulty'), 5),
+        (('isolated',), 4),
+        (('inactive',
+          ), 3)
+    )
+    processed = []
+    alarm_items = []
+    for d in datas:
+        new_value = {}
+        for k, v in d.items():
+            new_value[k] = dict(value=v)
+            if k == 'status':
+                alarm_level = belongs(v, alarms)
+                if alarm_level:
+                    new_value[k]['alarm'] = alarm_level
+                    alarm_items.append(new_value)
+        processed.append(new_value)
+    return processed, alarm_items
+
+
 def __get_down_interfaces():
     ignores = ('disabled', 'sfpAbsent', 'xcvrAbsen',
                'notconnect', 'notconnec', 'down')
@@ -138,7 +161,7 @@ def interface_trans(datas, hostname, *args):
                     alarm_items.append(new_value)
                 elif '97SN' in hostname and k == 'rx_pwr':
                     try:
-                        if v1 > 1 or v1 < -6:
+                        if v1 > 2 or v1 < -7:
                             new_value[k]['alarm'] = 2
                             alarm_items.append(new_value)
                     except:
@@ -324,7 +347,8 @@ def mds_asic_crc_err(datas, hostname, *args):
     check_counters = list(last_mds_dict.keys())
     alarmed = False
     for each_counter in check_counters:
-        old_value, current_value = last_mds_dict[each_counter], datas[0][each_counter]
+        old_value, current_value = last_mds_dict[
+            each_counter], datas[0][each_counter]
         increased = current_value - old_value
         new_value[each_counter] = dict(value=current_value)
         alarm_level = great_then(increased, crc_alarms)
@@ -337,7 +361,7 @@ def mds_asic_crc_err(datas, hostname, *args):
 
 
 def __get_mds_down_port_pair():
-    start = time.time() - 3600*24
+    start = time.time() - 3600 * 24
     all_down_interfaces = {}
     path = opj(PARSED_CLI_PATH, 'main')
     for fn in os.listdir(path):
@@ -428,6 +452,7 @@ methods = {
     'show interface': interface,
     'show interface trans detail': interface_trans,
     'show interface status': interface_status,
+    'show interface brief | in fc': mds_interface_brief,
     'show processes memory | in taca': n7k_tacacs_memory,
     'slot 5 show system internal raid': n7k_slot_flash,
     'slot 6 show system internal raid': n7k_slot_flash,
@@ -441,3 +466,28 @@ methods = {
     'show interface detail-counters': mds_interface_err_counter,
     'show spanning-tree summary total | in vlans': n5k_logic,
 }
+
+
+acl_0x1_list = ['pbr_%d' % i for i in (1000, 1998, 1999, 2000)]
+
+
+def n7k_acl_redirect(datas, *args):
+    alarms = (0, 5),
+    processed = []
+    alarm_items = []
+    for d in datas:
+        new_value = {}
+        for k, v in d.items():
+            new_value[k] = dict(value=v)
+            if k in acl_0x1_list:
+                alarm_level = great_then(v, alarms)
+                if alarm_level:
+                    new_value[k]['alarm'] = alarm_level
+                    alarm_items.append(new_value)
+        processed.append(new_value)
+    return processed, alarm_items
+
+
+for i in (1000, 1998, 1999, 2000):
+    cmd = 'show system internal access-list vlan %s input statistics | in redirect(0x1)' % i
+    methods[cmd] = n7k_acl_redirect

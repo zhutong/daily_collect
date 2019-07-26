@@ -62,6 +62,8 @@ def main():
         if 'VDC1' in hostname or 'C0' in hostname:
             continue
         is_M1 = hostname.startswith('NF70SW') and ('-B6' not in hostname)
+        if not is_M1:
+            is_M1 = ('JD70SW0A-T0' in hostname) or ('JD70SW0B-T0' in hostname)
         with open(opj(path, fn)) as f:
             data = json.load(f)
         ports = data.get('show interface status', [])

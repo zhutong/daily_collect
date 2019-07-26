@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import re
+from collections import defaultdict
 
 re_mds_log_loss_of_signal = re.compile(
     '(?P<timestamp>20\d+\s\w+\s+\d+\s+\d+:\d+:\d+)'
@@ -187,3 +188,55 @@ def parse_mds_interface_detail_counters(text, *args, **kwargs):
 
 def parse_mds_logging_loss_of_signal(text, *args, **kwargs):
     return [m.groupdict() for m in re_mds_log_loss_of_signal.finditer(text)]
+
+
+def parse_internal_mts_buffer_detail(text, *args, **kwargs):
+    res = []
+    node_sap_opc_dict = defaultdict(int)
+    for l in text.splitlines()[2:-1]:
+        try:
+            ss = l.split()
+            node_sap = ss[0]
+            if (int(ss[1]) // 1000) > 10:
+                node_sap_opc_dict[(ss[0], ss[-3])] += 1
+        except:
+            pass
+    for (node_sap, opc), count in node_sap_opc_dict.items():
+        node, sap, _ = node_sap.split('/')
+        res.append(dict(node=node, sap=sap, opc=opc, count=count))
+    return res
+
+
+def parse_internal_access_list(text, *args, **kwargs):
+    lines = text.splitlines()
+    name = 'acl_redirect_0x1_vlan_' + lines[0].split()[-6]
+    count = len(lines) - 2
+    return [{name: count}]
+
+
+def parse_nxos_interface_counter_error(text, *args, **kwargs):
+    fields = 'Align', 'FCS', 'TX', 'RX', 'UnderSize', 'OutDrop'
+    ports = set()
+    res = []
+    for l in text.splitlines():
+        if l.startswith('Eth'):
+            ss = l.split()
+            if_name = ss[0]
+            if if_name in ports:
+                break
+            ports.add(if_name)
+            values = [int(i) for i in ss[1:]]
+            if any(values):
+                d = {f: v for v in values for f in fields}
+                d['Interface'] = if_name
+                res.append(d)
+    return res
+
+
+def parse_mds_interface_brief(text, *args, **kwargs):
+    res = []
+    for l in text.splitlines():
+        if l.startswith('fc'):
+            ss = l.split()
+            res.append(dict(interface=ss[0], vsan=ss[1], status=ss[4]))
+    return res

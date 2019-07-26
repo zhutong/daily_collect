@@ -8,17 +8,17 @@
     },
     "ALL_N7K_VDC1": {
         "description": "ALL N7K VDC1",
-        "filter": ["70SW VDC1"]
+        "filter": ["70SW VDC1|-C0"]
     },
     "ALL_N7K_NOT_VDC1": {
         "description": "ALL N7K except VDC1",
         "filter": [
-            "70SW !VDC1"
+            "70SW !VDC1 !-C0"
         ]
     },
     "ALL_N7K": {
         "description": "ALL N7K",
-        "filter": ["70SW"]
+        "filter": ["70SW Cisco"]
     },
     "ALL_N5K": {
         "description": "ALL N5K",

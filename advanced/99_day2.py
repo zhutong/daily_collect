@@ -89,6 +89,8 @@ def send_syslog(syslogs):
 
 def send_mail(alarms):
     body = Template(body_template).render(alarms=alarms)
+    # print(body)
+    # return
     receivers = requests.get(GET_MAIL_LIST_URL).json()['mail_list']
     externals = 'icbc_mds@cisco.com', 'xiaoqingyang@eccom.com.cn'
     receivers.extend(externals)
@@ -120,7 +122,12 @@ def main():
                   'slot_5_raid',
                   'slot_6_raid',
                   'slot_5_log_space',
-                  'slot_6_log_space')
+                  'slot_6_log_space',
+                  'pbr_1000',
+                  'pbr_1998',
+                  'pbr_1999',
+                  'pbr_2000',
+                  )
     n7k = {}
     fex_fields = ('fex',
                   'pw1_status',
@@ -139,6 +146,7 @@ def main():
                        'HIGH_IN_BUF_PKT_CRC_ERR_COUNT')
     mds_asic = {}
     mds_port_fields = ('interface',
+                       'status',
                        'rx_power',
                        'onboard_err',
                        'sync_loss',
@@ -175,6 +183,30 @@ def main():
                                 content=content)
                     syslogs.append(item)
                     one_n7k_info.update(n7k_slot_raid[0])
+                n7k_slot_flash = datas.get(
+                    'slot %d show system internal flash' % i)
+                if n7k_slot_flash:
+                    content = '%s SLOT %d no free log space' % (hostname, i)
+                    item = dict(cpe_name='N7K',
+                                alert_group='N7K-5-LOG_SPACE',
+                                level=7,
+                                ip=devices[hostname]['ip'],
+                                content=content)
+                    # syslogs.append(item)
+                    one_n7k_info.update(n7k_slot_flash[0])
+
+            for i in (1000, 1998, 1999, 2000):
+                pbr_vlan = datas.get(
+                    'show system internal access-list vlan %d input statistics | in redirect(0x1)' % i)
+                if pbr_vlan:
+                    # content = '%s SLOT %d internal raid error' % (hostname, i)
+                    # item = dict(cpe_name='N7K',
+                    #             alert_group='KERN-3-SYSTEM_MSG',
+                    #             level=7,
+                    #             ip=devices[hostname]['ip'],
+                    #             content=content)
+                    # syslogs.append(item)
+                    one_n7k_info.update(pbr_vlan[0])
                 n7k_slot_flash = datas.get(
                     'slot %d show system internal flash' % i)
                 if n7k_slot_flash:
@@ -237,8 +269,9 @@ def main():
                     if v.get('alarm', 0) > 1:
                         mds_port_tmp[hostname][row['interface']['value']] = row
                         break
-            # MDS PORT RX Power
+
             if 'NF97SN' in hostname or 'JD97SN' in hostname:
+                # MDS PORT RX Power
                 port_trans = datas.get('show interface trans detail', [])
                 for row in port_trans:
                     v = row['rx_pwr']
@@ -248,6 +281,16 @@ def main():
                             mds_port_tmp[hostname][i]['rx_power'] = v
                         else:
                             mds_port_tmp[hostname][i] = {'rx_power': v}
+                # MDS Error Disable port
+                port_error = datas.get('show interface brief | in fc', [])
+                for row in port_error:
+                    v = row['status']
+                    if v.get('alarm', 0) == 5:
+                        i = row['interface']['value']
+                        if i in mds_port_tmp[hostname]:
+                            mds_port_tmp[hostname][i]['status'] = v
+                        else:
+                            mds_port_tmp[hostname][i] = {'status': v}
             # MDS Onbroad errors
             mds_onboard = datas.get('show logging onboard error-stats', [])
             for row in mds_onboard:
