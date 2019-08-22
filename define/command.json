@@ -88,11 +88,19 @@
 	},
 	{
 		"devices": [
-			"NF70SW -C0 5.1(4)"
+			"NF70SW -C0 !PJS",
+			"JD70SW03-C0|JD70SW04-C0"
 		],
 		"commands": [
 			{
 				"command": "show system internal mts buffers detail",
+				"parser": [
+					"day2",
+					"parse_internal_mts_buffer_detail"
+				]
+			},
+			{
+				"command": "slot 1 show system internal mts buffers detail",
 				"parser": [
 					"day2",
 					"parse_internal_mts_buffer_detail"
@@ -120,7 +128,7 @@
 				]
 			},
 			{
-				"command": "slot 10 show system internal mts buffers detail",
+				"command": "slot 11 show system internal mts buffers detail",
 				"parser": [
 					"day2",
 					"parse_internal_mts_buffer_detail"
@@ -128,6 +136,13 @@
 			},
 			{
 				"command": "slot 14 show system internal mts buffers detail",
+				"parser": [
+					"day2",
+					"parse_internal_mts_buffer_detail"
+				]
+			},
+			{
+				"command": "slot 16 show system internal mts buffers detail",
 				"parser": [
 					"day2",
 					"parse_internal_mts_buffer_detail"
@@ -144,7 +159,9 @@
 	},
 	{
 		"devices": [
-			"NF70SW VDC1 5.1(4)|6.0"
+			"70SW VDC1",
+			"JD70SW03-C0|JD70SW04-C0",
+			"70SW -C0_PJS"
 		],
 		"commands": [
 			{
@@ -485,7 +502,8 @@
 	{
 		"device_groups": [
 			"ALL_CISCO_DS",
-			"ALL_CISCO_AS"
+			"ALL_CISCO_AS",
+			"44WA"
 		],
 		"commands": [
 			{

@@ -37,6 +37,7 @@ def login(datas, *args):
 
 def interface(datas, *args):
     alarms = (100000, 5), (10000, 4), (1000, 3), (10, 2)
+    duplex = ('half', 4),
     processed = []
     alarm_items = []
     for d in datas:
@@ -45,6 +46,11 @@ def interface(datas, *args):
             new_value[k] = dict(value=v)
             if k in ('crc', 'rx_drop', 'tx_drop', 'rx_error', 'tx_error'):
                 alarm_level = great_then(v, alarms)
+                if alarm_level:
+                    new_value[k]['alarm'] = alarm_level
+                    alarm_items.append(new_value)
+            elif k == 'duplex':
+                alarm_level = equals(v, duplex)
                 if alarm_level:
                     new_value[k]['alarm'] = alarm_level
                     alarm_items.append(new_value)
@@ -162,6 +168,13 @@ def interface_trans(datas, hostname, *args):
                 elif '97SN' in hostname and k == 'rx_pwr':
                     try:
                         if v1 > 2 or v1 < -7:
+                            new_value[k]['alarm'] = 2
+                            alarm_items.append(new_value)
+                    except:
+                        pass
+                elif '97SN' in hostname and k == 'tx_pwr':
+                    try:
+                        if v1 > 0 or v1 < -3:
                             new_value[k]['alarm'] = 2
                             alarm_items.append(new_value)
                     except:

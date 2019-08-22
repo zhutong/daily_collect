@@ -27,8 +27,7 @@
     "ALL_CISCO_DS": {
         "description": "All Cisco gateway switches",
         "filter": [
-            "70SW VDC3 0A-|0B-",
-            "NF70SW0A-F1-VDC2|NF70SW0A-F3-VDC4|NF70SW0A-F3-VDC3|JD70SW0A-F2-VDC4|JD70SW0A-F3-VDC5"
+            "NF|JD SW 0A-|0B- Cisco|ios"
         ]
     },
     "ALL_CISCO_AS": {
@@ -67,5 +66,9 @@
     "ALL_MDS": {
         "description": "All Cisco SAN switches",
         "filter": ["97SN Cisco"]
+    },
+    "44WA": {
+        "description": "All Cisco 44WA",
+        "filter": ["44WA"]
     }
 }

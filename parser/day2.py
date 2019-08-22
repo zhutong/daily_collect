@@ -194,16 +194,12 @@ def parse_internal_mts_buffer_detail(text, *args, **kwargs):
     res = []
     node_sap_opc_dict = defaultdict(int)
     for l in text.splitlines()[2:-1]:
-        try:
-            ss = l.split()
-            node_sap = ss[0]
-            if (int(ss[1]) // 1000) > 10:
-                node_sap_opc_dict[(ss[0], ss[-3])] += 1
-        except:
-            pass
-    for (node_sap, opc), count in node_sap_opc_dict.items():
-        node, sap, _ = node_sap.split('/')
-        res.append(dict(node=node, sap=sap, opc=opc, count=count))
+        ss = l.split()
+        msg_size = int(ss[8])
+        c = 100 if msg_size >= 120000 and 'sup/480' in l else 1
+        node_sap_opc_dict[(ss[0], ss[6])] += c
+    for (node_sap_q, opc), count in node_sap_opc_dict.items():
+        res.append(dict(node_sap_q=node_sap_q, opc=opc, count=count))
     return res
 
 
@@ -227,7 +223,7 @@ def parse_nxos_interface_counter_error(text, *args, **kwargs):
             ports.add(if_name)
             values = [int(i) for i in ss[1:]]
             if any(values):
-                d = {f: v for v in values for f in fields}
+                d = {f: v for v, f in zip(values, fields)}
                 d['Interface'] = if_name
                 res.append(d)
     return res

@@ -39,7 +39,12 @@ def get_fex_speed_and_location():
             for i in d:
                 speed = 10000 if '-10GE' in i['model'] else 1000
                 fex_speed[(hostname, i['id'])] = speed
-                location.append(dict(fex_id=i['id'], location=i['location']))
+                _location = i['location']
+                try:
+                    _, _location = _location.split('/')
+                except:
+                    pass
+                location.append(dict(fex_id=i['id'], location=_location))
         if location:
             fex_location[hostname] = location
     return fex_speed, fex_location
@@ -158,10 +163,10 @@ def parse_interface(access_switches, n7k_port_speed, fex_speed):
 
 
 def get_all_gws(hostnames):
-    url = APP_URL+'tools/api/get_gateway'
+    url = APP_URL + 'tools/api/get_gateway'
     res = requests.post(url, json={'hostname': hostnames})
     gws = list(res.json().values())
-    url = APP_URL+'tools/api/rac_private_net_gateway'
+    url = APP_URL + 'tools/api/rac_private_net_gateway'
     res = requests.post(url, json={'hostname': hostnames})
     rac_private_gws = list(res.json().values())
     gws.extend(rac_private_gws)
@@ -293,7 +298,13 @@ def main():
     query_str = '&'.join(('format=all&query=%s' % f for f in filters))
     url = DEVICE_FILTER_URL + query_str
     access_switches = requests.get(url).json()['filtered']
-    access_switch_names = [h['hostname'] for h in access_switches]
+    access_switch_names = []
+    for sw in access_switches:
+        access_switch_names.append(sw['hostname'])
+        try:
+            sw['location'] = sw['location'].split('/')[-1]
+        except:
+            pass
     gateway_switch_names = get_all_gws(access_switch_names)
     all_mac_dict = get_mac(access_switch_names)
     all_arp_dict = get_arp(gateway_switch_names)

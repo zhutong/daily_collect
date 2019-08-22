@@ -92,7 +92,13 @@ def send_mail(alarms):
     # print(body)
     # return
     receivers = requests.get(GET_MAIL_LIST_URL).json()['mail_list']
-    externals = 'icbc_mds@cisco.com', 'xiaoqingyang@eccom.com.cn'
+    externals = ('icbc_mds@cisco.com',
+                 'xiaoqingyang@eccom.com.cn',
+                 'linyizhou@eccom.com.cn',
+                 'wangyanjun@eccom.com.cn',
+                 'zhaoyiming@eccom.com.cn',
+                 'chenshengkai@eccom.com.cn',
+                 )
     receivers.extend(externals)
 
     data = {
@@ -105,7 +111,7 @@ def send_mail(alarms):
 
 
 def update_day2_summary():
-    res = requests.get(APP_URL+'day2/api/refresh_summary')
+    res = requests.get(APP_URL + 'day2/api/refresh_summary')
     if res.status_code == 200:
         logging.info('Day2 summary updated')
 
@@ -148,6 +154,7 @@ def main():
     mds_port_fields = ('interface',
                        'status',
                        'rx_power',
+                       'tx_power',
                        'onboard_err',
                        'sync_loss',
                        'credit_loss',
@@ -161,11 +168,15 @@ def main():
                        'frame_error',
                        'frame_discard')
     mds_port = defaultdict(list)
+    half_duplex_fields = ('interface',)
+    half_duplex = defaultdict(list)
     for_email = (('N7K', n7k_fields, n7k),
                  ('FEX', fex_fields, fex),
                  ('MDS_ASIC_COUNTERS', mds_asic_fields, mds_asic),
                  ('MDS_PORT_COUNTERS', mds_port_fields, mds_port),
+                 ('HALF_DUPLEX_PORTS', half_duplex_fields, half_duplex)
                  )
+
     mds_port_tmp = defaultdict(dict)
     for alerts in all_alerts:
         for hostname, datas in alerts:
@@ -270,7 +281,7 @@ def main():
                         mds_port_tmp[hostname][row['interface']['value']] = row
                         break
 
-            if 'NF97SN' in hostname or 'JD97SN' in hostname:
+            if '97SN' in hostname:
                 # MDS PORT RX Power
                 port_trans = datas.get('show interface trans detail', [])
                 for row in port_trans:
@@ -281,6 +292,13 @@ def main():
                             mds_port_tmp[hostname][i]['rx_power'] = v
                         else:
                             mds_port_tmp[hostname][i] = {'rx_power': v}
+                    v = row['tx_pwr']
+                    if v.get('alarm', 0) >= 2:
+                        i = row['interface']['value']
+                        if i in mds_port_tmp[hostname]:
+                            mds_port_tmp[hostname][i]['tx_power'] = v
+                        else:
+                            mds_port_tmp[hostname][i] = {'tx_power': v}
                 # MDS Error Disable port
                 port_error = datas.get('show interface brief | in fc', [])
                 for row in port_error:
@@ -294,7 +312,6 @@ def main():
             # MDS Onbroad errors
             mds_onboard = datas.get('show logging onboard error-stats', [])
             for row in mds_onboard:
-                # print(row)
                 v = row['onboard_err']
                 if v.get('alarm', 0) > 2:
                     v['value'] = v['increased']
@@ -303,12 +320,19 @@ def main():
                         mds_port_tmp[hostname][i]['onboard_err'] = v
                     else:
                         mds_port_tmp[hostname][i] = {'onboard_err': v}
+            # 44WA half duplex ports
+            if '44WA' in hostname:
+                eth_ports = datas.get('show interface', [])
+                for row in eth_ports:
+                    v = row['duplex']
+                    if v.get('alarm', 0) >= 2:
+                        half_duplex[hostname].append(row)
+
     for h, ports in mds_port_tmp.items():
         for i, p in ports.items():
             p['interface'] = dict(value=i)
             mds_port[h].append(p)
-    update_day2_summary()
-    send_syslog(syslogs)
-    logging.info('Syslog sent')
+    # update_day2_summary()
+    # send_syslog(syslogs)
+    # logging.info('Syslog sent')
     send_mail(for_email)
-    logging.info('Email sent')

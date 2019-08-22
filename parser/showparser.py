@@ -407,7 +407,7 @@ def parse_interface(text, *args, **kwargs):
         for l in text.splitlines():
             if l.startswith('Eth'):
                 if 'is up' in l:
-                    port = dict(interface=l.split()[0])
+                    port = dict(interface=l.split()[0], duplex='full')
                 else:
                     port = None
             if port:
@@ -423,6 +423,9 @@ def parse_interface(text, *args, **kwargs):
                     port['tx_error'] = int(l.split(None, 1)[0])
                     res.append(port)
                     port = None
+                elif 'half-duplex' in l:
+                    port['duplex'] = 'half'
+
     elif 'WWN' in text:  # MDS
         for l in text.splitlines():
             if l.startswith('fc'):
@@ -451,6 +454,7 @@ def parse_interface(text, *args, **kwargs):
         for l in text.splitlines():
             if start and not l.startswith(' '):
                 r = dict(interface=name,
+                         duplex=duplex,
                          mac=mac,
                          crc=crc,
                          rx_drop=0,
@@ -464,6 +468,7 @@ def parse_interface(text, *args, **kwargs):
                 if 'Eth' in name and 'line protocol is up' in l:
                     start = True
                     crc = 0
+                    duplex = 'full'
                 else:
                     start = False
             elif not start:
@@ -482,6 +487,8 @@ def parse_interface(text, *args, **kwargs):
                     tx_drop = int(ss[-4])
             elif 'CRC' in l:
                 crc = int(l.split()[3])
+            elif 'Half' in l:
+                duplex = 'half'
     return res
 
 

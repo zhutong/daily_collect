@@ -11,8 +11,8 @@ reset_script_file = '/tmp/reset_mts_buffer.txt'
 table_file = '/tmp/mts_buffer_table.html'
 
 t0 = '// {h} ({i})\r\n{m} {i}\r\n//{h}//'
-t1 = 'debug mts drop node {node} sap {sap} from recv opcode {opc} age 10'
-t2 = '<tr><td>{h}</td><td>{slot}</td><td>{node}</td><td>{sap}</td><td>{opc}</td><td>{count}</td></tr>'
+t1 = 'debug mts drop node {node} sap {sap} from {q} opcode {opc} age 10'
+t2 = '<tr><td>{h}</td><td>{slot}</td><td>{node}</td><td>{sap}</td><td>{q}</td><td>{count}</td></tr>'
 
 body_part = u'''
         <style>
@@ -45,7 +45,7 @@ body_part = u'''
                 <th>Slot</th>
                 <th>Node</th>
                 <th>SAP</th>
-                <th>OP Code</th>
+                <th>Queue</th>
                 <th>Count</th>
             </thead>
             <tbody>'''
@@ -62,27 +62,51 @@ def __get_device_info():
 def create_report(mts_info):
     device_dict = __get_device_info()
     report_lines = []
-    script_lines = []
+    all_scripts = []
     for hostname, slot_dict in mts_info.items():
-        try:
-            ip = device_dict[hostname]['ip']
-            method = device_dict[hostname]['method'] or 'ssh'
-        except:
-            ip = 'unknown'
-            method = 'ssh'
-        script_lines.append(t0.format(h=hostname, i=ip, m=method))
-
+        script_lines = []
         for slot, mts_list in slot_dict.items():
-            if slot != '0':
-                script_lines.append('attach %s' % slot)
+            report_entry = defaultdict(int)
+            script_entry = defaultdict(list)
             for mts in mts_list:
-                script_lines.append(t1.format(h=hostname, **mts))
-                report_lines.append(t2.format(h=hostname, slot=slot, **mts))
-            if slot != '0':
-                script_lines.append('exit\r\n')
+                node, sap, q = mts['node_sap_q'].split('/')
+                report_entry[(node, sap, q)] += mts['count']
+                script_entry[(node, sap, q)].append(mts['opc'])
+            for (node, sap, q), count in report_entry.items():
+                if count < 15:
+                    continue
+                report_lines.append(t2.format(h=hostname,
+                                              slot=slot,
+                                              node=node,
+                                              sap=sap,
+                                              q=q,
+                                              count=count
+                                              ))
+                if slot:
+                    script_lines.append('attach %s' % slot)
+                for opc in script_entry[(node, sap, q)]:
+                    script_lines.append(t1.format(h=hostname,
+                                                  node=node,
+                                                  sap=sap,
+                                                  q=q,
+                                                  opc=opc
+                                                  ))
+                if slot:
+                    script_lines.append('exit\r\n')
+        if script_lines:
+            try:
+                ip = device_dict[hostname]['ip']
+                method = device_dict[hostname]['method'] or 'ssh'
+            except:
+                ip = 'unknown'
+                method = 'ssh'
+            all_scripts.append(t0.format(h=hostname, i=ip, m=method))
+            all_scripts.append('\r\n'.join(script_lines))
+            all_scripts.append('\r\n')
+
 
     with open(reset_script_file, 'w') as f:
-        f.write('\r\n'.join(script_lines))
+        f.write('\r\n'.join(all_scripts))
 
     table = body_part + '\r\n'.join(report_lines) + '</tbody></table>'
     with open(table_file, 'w') as f:
@@ -92,6 +116,7 @@ def create_report(mts_info):
 
 
 def send_mail(mail_body):
+    # return
     receivers = requests.get(c.GET_MAIL_LIST_URL).json()['mail_list']
     receivers.append('icbc_mds@cisco.com')
     data = {
@@ -117,6 +142,6 @@ def main():
                 if 'slot' in cmd:
                     slot = cmd.split()[1]
                 else:
-                    slot = '0'
-                mts_info[hostname][slot]=data[cmd]
+                    slot = ''
+                mts_info[hostname][slot] = data[cmd]
     send_mail(create_report(mts_info))
