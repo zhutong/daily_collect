@@ -2,7 +2,7 @@
     "FEX_ATTACHED_N7K&N5K": {
         "description": "Devices with FEX attached",
         "filter": [
-            "NF5|JD5 SW Cisco",
+            "NF5|JD5 SW Cisco !NF56SW33-B6 !NF56SW34-B6",
             "JD70 !0A- !0B- VDC !VDC1"
         ]
     },

@@ -148,6 +148,7 @@ def main():
                        'F16_IPA_IPA0_CNT_CORRUPT',
                        'F16_IPA_IPA1_CNT_BAD_CRC',
                        'F16_IPA_IPA1_CNT_CORRUPT',
+                       'F16_PLL_LOCK_CNT_ERR',
                        'INTERNAL_ERROR_CNT',
                        'HIGH_IN_BUF_PKT_CRC_ERR_COUNT')
     mds_asic = {}
@@ -168,13 +169,13 @@ def main():
                        'frame_error',
                        'frame_discard')
     mds_port = defaultdict(list)
-    half_duplex_fields = ('interface',)
-    half_duplex = defaultdict(list)
+    wa_port_fields = ('interface', 'duplex', 'rx_error', 'tx_drop')
+    wa_port = defaultdict(list)
     for_email = (('N7K', n7k_fields, n7k),
                  ('FEX', fex_fields, fex),
                  ('MDS_ASIC_COUNTERS', mds_asic_fields, mds_asic),
                  ('MDS_PORT_COUNTERS', mds_port_fields, mds_port),
-                 ('HALF_DUPLEX_PORTS', half_duplex_fields, half_duplex)
+                 ('KEY_LINE_PORTS', wa_port_fields, wa_port)
                  )
 
     mds_port_tmp = defaultdict(dict)
@@ -320,19 +321,20 @@ def main():
                         mds_port_tmp[hostname][i]['onboard_err'] = v
                     else:
                         mds_port_tmp[hostname][i] = {'onboard_err': v}
-            # 44WA half duplex ports
+            # 44WA ports
             if '44WA' in hostname:
                 eth_ports = datas.get('show interface', [])
                 for row in eth_ports:
-                    v = row['duplex']
-                    if v.get('alarm', 0) >= 2:
-                        half_duplex[hostname].append(row)
+                    for k in ('duplex', 'rx_error', 'tx_drop'):
+                        if row[k].get('alarm', 0) > 2:
+                            wa_port[hostname].append(row)
+                            break
 
     for h, ports in mds_port_tmp.items():
         for i, p in ports.items():
             p['interface'] = dict(value=i)
             mds_port[h].append(p)
-    # update_day2_summary()
-    # send_syslog(syslogs)
-    # logging.info('Syslog sent')
+    update_day2_summary()
+    send_syslog(syslogs)
+    logging.info('Syslog sent')
     send_mail(for_email)

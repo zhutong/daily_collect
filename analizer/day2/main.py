@@ -42,18 +42,21 @@ def interface(datas, *args):
     alarm_items = []
     for d in datas:
         new_value = {}
+        has_alarm = False
         for k, v in d.items():
             new_value[k] = dict(value=v)
             if k in ('crc', 'rx_drop', 'tx_drop', 'rx_error', 'tx_error'):
                 alarm_level = great_then(v, alarms)
                 if alarm_level:
                     new_value[k]['alarm'] = alarm_level
-                    alarm_items.append(new_value)
+                    has_alarm = True
             elif k == 'duplex':
                 alarm_level = equals(v, duplex)
                 if alarm_level:
                     new_value[k]['alarm'] = alarm_level
-                    alarm_items.append(new_value)
+                    has_alarm = True
+        if has_alarm:
+            alarm_items.append(new_value)
         processed.append(new_value)
     return processed, alarm_items
 
@@ -174,7 +177,7 @@ def interface_trans(datas, hostname, *args):
                         pass
                 elif '97SN' in hostname and k == 'tx_pwr':
                     try:
-                        if v1 > 0 or v1 < -3:
+                        if v1 > 1 or v1 < -5:
                             new_value[k]['alarm'] = 2
                             alarm_items.append(new_value)
                     except:
@@ -340,6 +343,7 @@ def __get_last_mds_data(hostname, cmd):
         "F16_IPA_IPA0_CNT_CORRUPT": 0,
         "F16_IPA_IPA1_CNT_BAD_CRC": 0,
         "F16_IPA_IPA1_CNT_CORRUPT": 0,
+        'F16_PLL_LOCK_CNT_ERR': 0,
         "INTERNAL_ERROR_CNT": 0,
         "HIGH_IN_BUF_PKT_CRC_ERR_COUNT": 0
     }]

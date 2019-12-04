@@ -400,17 +400,25 @@
 				"command": "show running-config"
 			},
 			{
-				"command": "show interface trans detail",
-				"parser": [
-					"showparser",
-					"parse_transceiver"
-				]
-			},
-			{
 				"command": "show version",
 				"parser": [
 					"showparser",
 					"parse_version"
+				]
+			}
+		]
+	},
+	{
+		"device_groups": [
+			"ALL_N7K_NOT_VDC1",
+			"ALL_MDS"
+		],
+		"commands": [
+			{
+				"command": "show interface trans detail",
+				"parser": [
+					"showparser",
+					"parse_transceiver"
 				]
 			}
 		]

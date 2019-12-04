@@ -93,6 +93,7 @@ def parse_mds_hardware_internal_error(text, *args, **kwargs):
     F16_IPA_IPA1_CNT_CORRUPT = 0
     INTERNAL_ERROR_CNT = 0
     HIGH_IN_BUF_PKT_CRC_ERR_COUNT = 0
+    F16_PLL_LOCK_CNT_ERR = 0
 
     for line in text.splitlines():
         if 'F16_IPA_IPA0_CNT_BAD_CRC' in line:
@@ -103,6 +104,8 @@ def parse_mds_hardware_internal_error(text, *args, **kwargs):
             F16_IPA_IPA1_CNT_BAD_CRC += int(re.findall('(\d{8,})', line)[0])
         elif 'F16_IPA_IPA1_CNT_CORRUPT' in line:
             F16_IPA_IPA1_CNT_CORRUPT += int(re.findall('(\d{8,})', line)[0])
+        elif 'F16_PLL' in line:
+            F16_PLL_LOCK_CNT_ERR += int(re.findall('(\d{8,})', line)[0])
         elif 'INTERNAL_ERROR_CNT' in line:
             INTERNAL_ERROR_CNT += int(re.findall('(\d{8,})', line)[0])
         elif 'HIGH_IN_BUF_PKT_CRC_ERR_COUNT' in line:
@@ -115,7 +118,8 @@ def parse_mds_hardware_internal_error(text, *args, **kwargs):
         F16_IPA_IPA1_CNT_BAD_CRC=F16_IPA_IPA1_CNT_BAD_CRC,
         F16_IPA_IPA1_CNT_CORRUPT=F16_IPA_IPA1_CNT_CORRUPT,
         INTERNAL_ERROR_CNT=INTERNAL_ERROR_CNT,
-        HIGH_IN_BUF_PKT_CRC_ERR_COUNT=HIGH_IN_BUF_PKT_CRC_ERR_COUNT
+        HIGH_IN_BUF_PKT_CRC_ERR_COUNT=HIGH_IN_BUF_PKT_CRC_ERR_COUNT,
+        F16_PLL_LOCK_CNT_ERR=F16_PLL_LOCK_CNT_ERR
     )
     return [result_dic]
 

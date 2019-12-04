@@ -130,12 +130,12 @@ def parse_interface(access_switches, n7k_port_speed, fex_speed):
                 if hostname.startswith('JD70SW'):
                     speed = n7k_port.get(i, 1000)
                 else:
-                    sp = p['speed']
-                    if '10g' in p['type']:
+                    if '10G' in p['speed']:
                         speed = 10000
                     else:
-                        fex_id = i[8:11]
-                        speed = fex_speed.get((hostname, fex_id), 1000)
+                        speed = 1000
+                        # fex_id = i[8:11]
+                        # speed = fex_speed.get((hostname, fex_id), 1000)
             try:
                 pair_id = get_port_pair_id(hostname, i, 1)
                 description = port_desc.get(i, '')
