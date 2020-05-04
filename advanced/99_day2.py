@@ -72,6 +72,7 @@ body_template = '''
         {% endif %}
     {% endfor %}
     '''
+syslog_template = '<190>[30169]: (CPE) N7K {ip} TACACS-9-SYSTEM_MSG {ip} NA 6 {hostname} tacacs process high'
 
 
 def __get_device_info():
@@ -122,6 +123,7 @@ def main():
         all_alerts = json.load(f)
 
     syslogs = []
+    n7k_tacacs_mem_syslog = []
     n7k_fields = ('total_memory',
                   'usage',
                   'pecentage',
@@ -148,6 +150,8 @@ def main():
                        'F16_IPA_IPA0_CNT_CORRUPT',
                        'F16_IPA_IPA1_CNT_BAD_CRC',
                        'F16_IPA_IPA1_CNT_CORRUPT',
+                       'F16_MEM0_TM_SAT0_ECC_1BIT_ERR1',
+                       'F16_MEM1_TM_SAT0_ECC_1BIT_ERR1',
                        'F16_PLL_LOCK_CNT_ERR',
                        'INTERNAL_ERROR_CNT',
                        'HIGH_IN_BUF_PKT_CRC_ERR_COUNT')
@@ -190,7 +194,7 @@ def main():
                     content = '%s SLOT %d internal raid error' % (hostname, i)
                     item = dict(cpe_name='N7K',
                                 alert_group='KERN-3-SYSTEM_MSG',
-                                level=7,
+                                level=6,
                                 ip=devices[hostname]['ip'],
                                 content=content)
                     syslogs.append(item)
@@ -199,42 +203,19 @@ def main():
                     'slot %d show system internal flash' % i)
                 if n7k_slot_flash:
                     content = '%s SLOT %d no free log space' % (hostname, i)
-                    item = dict(cpe_name='N7K',
-                                alert_group='N7K-5-LOG_SPACE',
-                                level=7,
-                                ip=devices[hostname]['ip'],
-                                content=content)
-                    # syslogs.append(item)
                     one_n7k_info.update(n7k_slot_flash[0])
 
             for i in (1000, 1998, 1999, 2000):
                 pbr_vlan = datas.get(
                     'show system internal access-list vlan %d input statistics | in redirect(0x1)' % i)
                 if pbr_vlan:
-                    # content = '%s SLOT %d internal raid error' % (hostname, i)
-                    # item = dict(cpe_name='N7K',
-                    #             alert_group='KERN-3-SYSTEM_MSG',
-                    #             level=7,
-                    #             ip=devices[hostname]['ip'],
-                    #             content=content)
-                    # syslogs.append(item)
                     one_n7k_info.update(pbr_vlan[0])
-                n7k_slot_flash = datas.get(
-                    'slot %d show system internal flash' % i)
-                if n7k_slot_flash:
-                    content = '%s SLOT %d no free log space' % (hostname, i)
-                    item = dict(cpe_name='N7K',
-                                alert_group='N7K-5-LOG_SPACE',
-                                level=7,
-                                ip=devices[hostname]['ip'],
-                                content=content)
-                    # syslogs.append(item)
-                    one_n7k_info.update(n7k_slot_flash[0])
-
             n7k_tacacs_mem = datas.get('show processes memory | in taca')
             if n7k_tacacs_mem:
                 if n7k_tacacs_mem[0]['pecentage']['alarm'] > 3:
                     one_n7k_info.update(n7k_tacacs_mem[0])
+                    n7k_tacacs_mem_syslog.append(syslog_template.format(hostname=hostname,
+                                                                        ip=devices[hostname]['ip']))
             if one_n7k_info:
                 n7k[hostname] = [one_n7k_info]
 
@@ -338,3 +319,6 @@ def main():
     send_syslog(syslogs)
     logging.info('Syslog sent')
     send_mail(for_email)
+
+    with open('/tmp/n7k_tacacs_mem_syslog.txt', 'w') as f:
+        f.write('\n'.join(n7k_tacacs_mem_syslog))

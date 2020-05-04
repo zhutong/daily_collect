@@ -386,7 +386,7 @@ def __get_mds_down_port_pair():
             continue
         with open(opj(path, fn)) as f:
             rows = json.load(f).get(
-                "show logging log | begin \"2019 \" | grep \"Link failure loss of signal\"")
+                "show logging log | begin \"2020 \" | grep \"Link failure loss of signal\"")
         if not rows:
             continue
         events = defaultdict(list)

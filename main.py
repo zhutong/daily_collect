@@ -470,7 +470,7 @@ def __analysis_one_device(hostname, data, all_methods):
 
 
 def analysis():
-    logging.info('Start analize parsed data')
+    logging.info('Stage 7: Start analize parsed data')
     all_methods = {}
     for f in os.listdir(opj(APP_PATH, 'analizer')):
         if not os.path.isdir(opj(APP_PATH, 'analizer', f)):
@@ -506,10 +506,11 @@ def analysis():
             results = [res.get() for res in results]
             all_results.append(results)
     __save_json(all_results, DAILY_ALARMED_FN)
-    logging.info('Analize finished')
+    logging.info('Stage 7: Analize finished')
 
 
 def advanced_analysis(n=None):
+    logging.info('Stage 8: Advanced tasks')
     files = sorted(os.listdir(opj(APP_PATH, 'advanced')))
     for f in files:
         if not f.endswith('.py'):

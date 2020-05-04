@@ -4,17 +4,17 @@ import json
 import logging
 import re
 import os
+import socket
 import sys
 import time
 from collections import defaultdict
-from multiprocessing.dummy import Pool
-
+from multiprocessing import Pool as MPool
+from multiprocessing.dummy import Pool as TPool
 from pprint import pprint as pp
 
 import requests
 from tornado.log import enable_pretty_logging
 
-DEPLOYED = True
 
 TOOLS_APP_URL = 'http://127.0.0.1/apps/tools/api/'
 GET_MAIL_LIST_URL = '%sget_wl_mail_list_by_tag?tag=wl1' % TOOLS_APP_URL
@@ -22,10 +22,6 @@ SEND_MAIL_URL = '%ssend_mail' % TOOLS_APP_URL
 SEND_CPE_SYSLOG_URL = '%ssend_cpe_syslog' % TOOLS_APP_URL
 CLI_URL = 'http://127.0.0.1:8080/api/v1/sync/cli'
 CREDENTIAL_URL = 'http://127.0.0.1:8080/api/v1/credential'
-if DEPLOYED:
-    TEMPLATE_TOOL_URL = 'http://127.0.0.1/apps/scenario_change/api/gen_device_config'
-else:
-    TEMPLATE_TOOL_URL = 'http://127.0.0.1:9116/apps/scenario_change/api/gen_device_config'
 
 PATH = '/data/n7k_mac_check/'
 CMD_FN = os.path.join(PATH, 'n7k_mac_check_cmd.json')
@@ -99,6 +95,13 @@ missed_template = u'''
 
 
 GW_MAC_PREFIXES = '0000.0c07', '0001.d7', '000a.49', '0023.e9', 'f415.63'
+GW_ONLY = True
+
+
+def __chunks(lst, n):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
 
 
 def __is_not_today(full_fn, seconds):
@@ -167,7 +170,7 @@ def collect():
     logging.info('Start collecting')
     with open(CMD_FN) as f:
         commands = json.load(f)
-    pool = Pool(4)
+    pool = TPool(80)
     params = []
     for h, c in commands.items():
         p = dict(hostname=h, commands=c, wait=5)
@@ -179,6 +182,9 @@ def collect():
 
 
 def check_one(n7k_module_chips, hostname, fn):
+    logging.info('check %s', hostname)
+    hw_missed_mac = defaultdict(list)
+    sw_errored_mac = defaultdict(list)
     try:
         with open(fn) as f:
             data = json.load(f)
@@ -199,7 +205,6 @@ def check_one(n7k_module_chips, hostname, fn):
                 fe_bd_mac_dict[cmd.split()[-1]] = slot_fe_mac_dict
 
         # check slot software mac entry
-        hw_missed_mac = defaultdict(list)
         slot_vlan_chips = n7k_module_chips[hostname]
         for vlan, slot_dict in slot_vlan_chips.items():
             vlan_macs = global_mac_dict[vlan]
@@ -223,7 +228,6 @@ def check_one(n7k_module_chips, hostname, fn):
                         hw_missed_mac[key].append('%s/%s' % (slot, fe))
 
         # check slot software mac entry
-        sw_errored_mac = defaultdict(list)
         global_vlan_mac_dict = __mac_tuple2mac_dict(global_mac_dict)
         for slot, slot_dict in slot_sw_mac_dict.items():
             slot_vlan_mac_dict = __mac_tuple2mac_dict(slot_dict)
@@ -236,10 +240,14 @@ def check_one(n7k_module_chips, hostname, fn):
                     if s_p != p:
                         key = '%s@%s' % (m, vlan)
                         sw_errored_mac[key].append((slot, p, s_p))
+        if(hw_missed_mac):
+            logging.error('%s found missed MAC address', hostname)
+        if(sw_errored_mac):
+            logging.error('%s found errored MAC address', hostname)
     except:
         logging.warning('Check %s fail', hostname)
         # raise
-    return hw_missed_mac, sw_errored_mac
+    return hostname, hw_missed_mac, sw_errored_mac
 
 
 def report(missed_mac_dict, errored_mac_dict):
@@ -258,7 +266,8 @@ def report(missed_mac_dict, errored_mac_dict):
             for err in errs:
                 html_lines.append('<tr><td>%s</td>' % hostname)
                 html_lines.append('<td>%s</td>' % m)
-                html_lines.append('<td>%s</td><td>%s</td><td>%s</td>' % tuple(err))
+                html_lines.append(
+                    '<td>%s</td><td>%s</td><td>%s</td>' % tuple(err))
     html_lines.append(missed_template)
     for hostname, datas in missed_mac_dict.items():
         for m, fes in datas.items():
@@ -280,42 +289,46 @@ def report(missed_mac_dict, errored_mac_dict):
     res = requests.get(CREDENTIAL_URL)
     devices = res.json()['device_info']
     syslogs = []
+    syslog_template = '<190>[30169]: (CPE) N7K %s N7K-5-MAC_NOT_SYNC %s NA 6 %s mac:%s'
     for hostname, macs in scripts.items():
         device = devices[hostname]
         ip = device['ip']
-        content = '%s MAC not sync: [%s]' % (hostname, '; '.join(macs))
-        item = dict(cpe_name='N7K',
-                    alert_group='N7K-5-MAC_NOT_SYNC',
-                    level=7,
-                    ip=ip,
-                    content=content)
-        syslogs.append(item)
+        if SEND_MAIL:
+            method = device.get('method', 'ssh') or 'ssh'
+            mac_list = []
+            for mac in macs:
+                m, v = mac.split('@')
+                mac_list.append(dict(vlan=v, mac=m))
+            n7k_list.append(dict(hostname=hostname,
+                                 ip=ip,
+                                 method=method,
+                                 mac_list=mac_list))
+        if SEND_SYSLOG:
+            for chunk in __chunks(macs, ENTRY_PER_LOG):
+                item = syslog_template % (ip, ip, hostname, ' '.join(chunk))
+                syslogs.append(item)
 
-        method = device.get('method', 'ssh') or 'ssh'
-        mac_list = []
-        for mac in macs:
-            m, v = mac.split('@')
-            mac_list.append(dict(vlan=v, mac=m))
-        n7k_list.append(dict(hostname=hostname,
-                             ip=ip,
-                             method=method,
-                             mac_list=mac_list))
-    data = dict(template_id='N7K清除MAC', data=dict(n7k_list=n7k_list))
-    res = requests.post(TEMPLATE_TOOL_URL, json=data)
-    # pp(res.json())
-    with open(CLEAR_SCRIPT_FN, 'w') as f:
-        f.write(res.json()['config'])
+    if SEND_MAIL:
+        data = dict(template_id='N7K清除MAC', data=dict(n7k_list=n7k_list))
+        res = requests.post(TEMPLATE_TOOL_URL, json=data)
+        with open(CLEAR_SCRIPT_FN, 'w') as f:
+            f.write(res.json()['config'])
 
     return mail_body, syslogs
 
 
 def send_syslog(syslogs):
+    syslog_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     for s in syslogs:
-        requests.post(SEND_CPE_SYSLOG_URL, json.dumps(s))
+        logging.info(s)
+        for svr in SYSLOG_SERVERS:
+            syslog_socket.sendto(bytes(s, encoding="utf8"), (svr, 514))
+        time.sleep(SYSLOG_WAIT)
 
 
 def send_mail(body):
     receivers = requests.get(GET_MAIL_LIST_URL).json()['mail_list']
+    receivers.append('wlybzb@dccsh.icbc.com.cn')
     receivers.append('icbc_mds@cisco.com')
     data = {
         "subject": "Day2: 嘉定N7K未同步的网关MAC",
@@ -330,26 +343,25 @@ def send_mail(body):
 def ana():
     with open(FE_FN) as f:
         n7k_module_chips = json.load(f)
-
-    missed_mac_dict = {}
-    errored_mac_dict = {}
+    params = []
     for fn in os.listdir(PATH):
         if not fn.startswith('O__'):
             continue
         full_fn = os.path.join(PATH, fn)
         hostname = fn[3:-5]
-        hw_missed_mac, sw_errored_mac = check_one(
-            n7k_module_chips, hostname, full_fn)
+        params.append((n7k_module_chips, hostname, full_fn))
+
+    pool = MPool(4)
+    results = [pool.apply_async(check_one, p) for p in params]
+
+    missed_mac_dict = {}
+    errored_mac_dict = {}
+    for res in results:
+        hostname, hw_missed_mac, sw_errored_mac = res.get()
         if(hw_missed_mac):
             missed_mac_dict[hostname] = hw_missed_mac
-            logging.error(hostname)
-            # pp(hw_missed_mac)
-            # break
         if(sw_errored_mac):
             errored_mac_dict[hostname] = sw_errored_mac
-            logging.error(hostname)
-            # pp(sw_errored_mac)
-            # break
 
     # save today's data as last missed data
     with open(LAST_MISSED_FN, 'w') as f:
@@ -360,32 +372,36 @@ def ana():
     return missed_mac_dict, errored_mac_dict
 
 
-enable_pretty_logging()
-GW_ONLY = True
-
+DEPLOYED = True  # and 0
+ENTRY_PER_LOG = 40
+SYSLOG_SERVERS = ('76.7.131.16', '84.7.131.4')
+SYSLOG_WAIT = 120
+SEND_SYSLOG = True
+SEND_MAIL = True
 
 if __name__ == '__main__':
+    enable_pretty_logging()
 
-    if DEPLOYED and 0:
-        if __is_not_today(FE_FN, 12*3600):
+    if DEPLOYED:
+        if __is_not_today(FE_FN, 20 * 3600):
             logging.error('Day2数据未更新！')
             sys.exit(1)
         collect()
-        # sys.exit(1)
-
-    if DEPLOYED:
+        TEMPLATE_TOOL_URL = 'http://127.0.0.1/apps/scenario_change/api/gen_device_config'
         missed_mac_dict, errored_mac_dict = ana()
-        # sys.exit(1)
     else:
+        TEMPLATE_TOOL_URL = 'http://127.0.0.1:9116/apps/scenario_change/api/gen_device_config'
         with open(LAST_MISSED_FN) as f:
             missed_mac_dict = json.load(f)
         with open(LAST_ERRORED_FN) as f:
             errored_mac_dict = json.load(f)
 
     mail_body, syslogs = report(missed_mac_dict, errored_mac_dict)
-    with open(os.path.join(PATH, CHECK_OUTPUT_FN), 'w') as f:
-        f.write(mail_body)
+    # with open(os.path.join(PATH, CHECK_OUTPUT_FN), 'w') as f:
+    #     f.write(mail_body)
 
-    if DEPLOYED and missed_mac_dict:
-        send_mail(mail_body)
-        # send_syslog(syslogs)
+    if DEPLOYED and (missed_mac_dict or errored_mac_dict):
+        if SEND_MAIL:
+            send_mail(mail_body)
+        if SEND_SYSLOG:
+            send_syslog(syslogs)

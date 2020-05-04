@@ -10,27 +10,27 @@ re_mds_log_loss_of_signal = re.compile(
 
 def attach_fex(text):
     try:
-        result_dic = {}
+        result_dict = {}
         for line in text.splitlines():
             if 'attach fex' in line:
-                result_dic["fex"] = line.split()[-1]
+                result_dict["fex"] = line.split()[-1]
             elif line.startswith("  1") and line.find("(") >= 0:
-                result_dic["pw1_status"] = line.split(
+                result_dict["pw1_status"] = line.split(
                     "(")[1].split(')')[0].strip()
             elif line.startswith("  2") and line.find("(") >= 0:
-                result_dic["pw2_status"] = line.split(
+                result_dict["pw2_status"] = line.split(
                     "(")[1].split(')')[0].strip()
             elif line.startswith("1") or (line.startswith("  1") and line.find("(") < 0):
-                result_dic["pw1_vout"] = line.split()[2]
+                result_dict["pw1_vout"] = line.split()[2]
             elif line.startswith("2") or (line.startswith("  2") and line.find("(") < 0):
-                result_dic["pw2_vout"] = line.split()[2]
+                result_dict["pw2_vout"] = line.split()[2]
             elif "RX_CRC_NOT_STOMPED" in line:  # Add STOMPED info in parser
                 l = line.replace('|', ' ')
-                result_dic['RX_CRC_NOT_STOMPED'] = int(l.split()[-2])
+                result_dict['RX_CRC_NOT_STOMPED'] = int(l.split()[-2])
             elif "RX_CRC_STOMPED" in line:
                 l = line.replace('|', ' ')
-                result_dic['RX_CRC_STOMPED'] = int(l.split()[-2])
-                return [result_dic]
+                result_dict['RX_CRC_STOMPED'] = int(l.split()[-2])
+                return [result_dict]
     except Exception as e:
         return []
 
@@ -91,6 +91,8 @@ def parse_mds_hardware_internal_error(text, *args, **kwargs):
     F16_IPA_IPA0_CNT_CORRUPT = 0
     F16_IPA_IPA1_CNT_BAD_CRC = 0
     F16_IPA_IPA1_CNT_CORRUPT = 0
+    F16_MEM0_TM_SAT0_ECC_1BIT_ERR1 = 0
+    F16_MEM1_TM_SAT0_ECC_1BIT_ERR1 = 0
     INTERNAL_ERROR_CNT = 0
     HIGH_IN_BUF_PKT_CRC_ERR_COUNT = 0
     F16_PLL_LOCK_CNT_ERR = 0
@@ -104,6 +106,10 @@ def parse_mds_hardware_internal_error(text, *args, **kwargs):
             F16_IPA_IPA1_CNT_BAD_CRC += int(re.findall('(\d{8,})', line)[0])
         elif 'F16_IPA_IPA1_CNT_CORRUPT' in line:
             F16_IPA_IPA1_CNT_CORRUPT += int(re.findall('(\d{8,})', line)[0])
+        elif 'FF16_MEM0_TM_SAT0_ECC_1BIT_ERR1' in line:
+            FF16_MEM0_TM_SAT0_ECC_1BIT_ERR1 += int(re.findall('(\d{8,})', line)[0])
+        elif 'FF16_MEM1_TM_SAT0_ECC_1BIT_ERR1' in line:
+            FF16_MEM1_TM_SAT0_ECC_1BIT_ERR1 += int(re.findall('(\d{8,})', line)[0])
         elif 'F16_PLL' in line:
             F16_PLL_LOCK_CNT_ERR += int(re.findall('(\d{8,})', line)[0])
         elif 'INTERNAL_ERROR_CNT' in line:
@@ -112,16 +118,18 @@ def parse_mds_hardware_internal_error(text, *args, **kwargs):
             HIGH_IN_BUF_PKT_CRC_ERR_COUNT += int(
                 re.findall('(\d{8,})', line)[0])
 
-    result_dic = dict(
+    result_dict = dict(
         F16_IPA_IPA0_CNT_BAD_CRC=F16_IPA_IPA0_CNT_BAD_CRC,
         F16_IPA_IPA0_CNT_CORRUPT=F16_IPA_IPA0_CNT_CORRUPT,
         F16_IPA_IPA1_CNT_BAD_CRC=F16_IPA_IPA1_CNT_BAD_CRC,
         F16_IPA_IPA1_CNT_CORRUPT=F16_IPA_IPA1_CNT_CORRUPT,
-        INTERNAL_ERROR_CNT=INTERNAL_ERROR_CNT,
+        IFF16_MEM0_TM_SAT0_ECC_1BIT_ERR1 = FF16_MEM0_TM_SAT0_ECC_1BIT_ERR1,
+        IFF16_MEM1_TM_SAT0_ECC_1BIT_ERR1 = FF16_MEM1_TM_SAT0_ECC_1BIT_ERR1,
+        NTERNAL_ERROR_CNT=INTERNAL_ERROR_CNT,
         HIGH_IN_BUF_PKT_CRC_ERR_COUNT=HIGH_IN_BUF_PKT_CRC_ERR_COUNT,
         F16_PLL_LOCK_CNT_ERR=F16_PLL_LOCK_CNT_ERR
     )
-    return [result_dic]
+    return [result_dict]
 
 
 def parse_mds_logging_onboard_error_stats(text, *args, **kwargs):

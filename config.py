@@ -80,5 +80,5 @@ if not os.path.exists(DATA_PATH):
 
 # 时戳格式，采集线程数
 TIMESTAMP_FORMAT = '%Y%m%d%H%M%S'
-MAX_SNMP_WORKERS = 80
-MAX_CLI_WORKERS = 40
+MAX_SNMP_WORKERS = 300
+MAX_CLI_WORKERS = 120

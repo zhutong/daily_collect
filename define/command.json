@@ -1,560 +1,561 @@
 [
-	{
-		"devices": [
-			"NF70SW|JD70SW 0A|0B VDC3",
-			"JD70SW 0A|0B VDC4|VDC5",
-			"NF70SW 0A|0B F1-VDC2|F3-VDC4"
-		],
-		"commands": [
-			{
-				"command": "show system internal access-list vlan 1000 input statistics | in redirect(0x1)",
-				"parser": [
-					"day2",
-					"parse_internal_access_list"
-				]
-			},
-			{
-				"command": "show system internal access-list vlan 1998 input statistics | in redirect(0x1)",
-				"parser": [
-					"day2",
-					"parse_internal_access_list"
-				]
-			},
-			{
-				"command": "show system internal access-list vlan 1999 input statistics | in redirect(0x1)",
-				"parser": [
-					"day2",
-					"parse_internal_access_list"
-				]
-			},
-			{
-				"command": "show system internal access-list vlan 2000 input statistics | in redirect(0x1)",
-				"parser": [
-					"day2",
-					"parse_internal_access_list"
-				]
-			}
-		]
-	},
-	{
-		"devices": [
-			"NF70SW 0A|0B -B5|-B6 VDC1",
-			"JD70SW VDC1"
-		],
-		"commands": [
-			{
-				"command": "slot 5 show system internal raid",
-				"parser": [
-					"day2",
-					"parse_system_internal_raid"
-				]
-			},
-			{
-				"command": "slot 6 show system internal raid",
-				"parser": [
-					"day2",
-					"parse_system_internal_raid"
-				]
-			}
-		]
-	},
-	{
-		"device_groups": [
-			"ALL_N7K_VDC1"
-		],
-		"commands": [
-			{
-				"command": "slot 5 show system internal flash",
-				"parser": [
-					"day2",
-					"parse_system_internal_flash"
-				]
-			},
-			{
-				"command": "slot 6 show system internal flash",
-				"parser": [
-					"day2",
-					"parse_system_internal_flash"
-				]
-			},
-			{
-				"command": "show vdc membership",
-				"parser": [
-					"showparser",
-					"parse_vdc_membership"
-				]
-			}
-		]
-	},
-	{
-		"devices": [
-			"NF70SW -C0 !PJS",
-			"JD70SW03-C0|JD70SW04-C0"
-		],
-		"commands": [
-			{
-				"command": "show system internal mts buffers detail",
-				"parser": [
-					"day2",
-					"parse_internal_mts_buffer_detail"
-				]
-			},
-			{
-				"command": "slot 1 show system internal mts buffers detail",
-				"parser": [
-					"day2",
-					"parse_internal_mts_buffer_detail"
-				]
-			},
-			{
-				"command": "slot 2 show system internal mts buffers detail",
-				"parser": [
-					"day2",
-					"parse_internal_mts_buffer_detail"
-				]
-			},
-			{
-				"command": "slot 3 show system internal mts buffers detail",
-				"parser": [
-					"day2",
-					"parse_internal_mts_buffer_detail"
-				]
-			},
-			{
-				"command": "slot 5 show system internal mts buffers detail",
-				"parser": [
-					"day2",
-					"parse_internal_mts_buffer_detail"
-				]
-			},
-			{
-				"command": "slot 11 show system internal mts buffers detail",
-				"parser": [
-					"day2",
-					"parse_internal_mts_buffer_detail"
-				]
-			},
-			{
-				"command": "slot 14 show system internal mts buffers detail",
-				"parser": [
-					"day2",
-					"parse_internal_mts_buffer_detail"
-				]
-			},
-			{
-				"command": "slot 16 show system internal mts buffers detail",
-				"parser": [
-					"day2",
-					"parse_internal_mts_buffer_detail"
-				]
-			},
-			{
-				"command": "slot 17 show system internal mts buffers detail",
-				"parser": [
-					"day2",
-					"parse_internal_mts_buffer_detail"
-				]
-			}
-		]
-	},
-	{
-		"devices": [
-			"70SW VDC1",
-			"JD70SW03-C0|JD70SW04-C0",
-			"70SW -C0_PJS"
-		],
-		"commands": [
-			{
-				"command": "show system internal mts buffers detail",
-				"parser": [
-					"day2",
-					"parse_internal_mts_buffer_detail"
-				]
-			},
-			{
-				"command": "slot 1 show system internal mts buffers detail",
-				"parser": [
-					"day2",
-					"parse_internal_mts_buffer_detail"
-				]
-			},
-			{
-				"command": "slot 2 show system internal mts buffers detail",
-				"parser": [
-					"day2",
-					"parse_internal_mts_buffer_detail"
-				]
-			},
-			{
-				"command": "slot 3 show system internal mts buffers detail",
-				"parser": [
-					"day2",
-					"parse_internal_mts_buffer_detail"
-				]
-			},
-			{
-				"command": "slot 4 show system internal mts buffers detail",
-				"parser": [
-					"day2",
-					"parse_internal_mts_buffer_detail"
-				]
-			},
-			{
-				"command": "slot 7 show system internal mts buffers detail",
-				"parser": [
-					"day2",
-					"parse_internal_mts_buffer_detail"
-				]
-			},
-			{
-				"command": "slot 8 show system internal mts buffers detail",
-				"parser": [
-					"day2",
-					"parse_internal_mts_buffer_detail"
-				]
-			},
-			{
-				"command": "slot 9 show system internal mts buffers detail",
-				"parser": [
-					"day2",
-					"parse_internal_mts_buffer_detail"
-				]
-			},
-			{
-				"command": "slot 10 show system internal mts buffers detail",
-				"parser": [
-					"day2",
-					"parse_internal_mts_buffer_detail"
-				]
-			}
-		]
-	},
-	{
-		"devices": [
-			"65SW"
-		],
-		"commands": [
-			{
-				"command": "show mac-address-table",
-				"parser": [
-					"showparser",
-					"parse_mac"
-				]
-			}
-		]
-	},
-	{
-		"device_groups": [
-			"ALL_N7K"
-		],
-		"commands": [
-			{
-				"command": "show processes memory | in taca",
-				"parser": [
-					"day2",
-					"parse_processes_memory_tacacs"
-				]
-			}
-		]
-	},
-	{
-		"device_groups": [
-			"ALL_N7K_NOT_VDC1"
-		],
-		"commands": [
-			{
-				"command": "show port-channel summary",
-				"parser": [
-					"showparser",
-					"parse_port_channel"
-				]
-			}
-		]
-	},
-	{
-		"device_groups": [
-			"ALL_CISCO_DS"
-		],
-		"commands": [
-			{
-				"command": "show vlan brief",
-				"parser": [
-					"showparser",
-					"parse_vlan_brief"
-				]
-			}
-		]
-	},
-	{
-		"device_groups": [
-			"ALL_CISCO_AS"
-		],
-		"commands": [
-			{
-				"command": "show vlan brief",
-				"parser": [
-					"showparser",
-					"parse_vlan_brief"
-				]
-			}
-		]
-	},
-	{
-		"device_groups": [
-			"HW_BL"
-		],
-		"commands": [
-			{
-				"command": "display vlan | in common",
-				"parser": [
-					"day2",
-					"parse_vlan_huawei"
-				]
-			}
-		]
-	},
-	{
-		"device_groups": [
-			"FEX_ATTACHED_N7K&N5K"
-		],
-		"dependency": "show fex",
-		"commands": [
-			{
-				"command": "attach fex",
-				"command_group": [
-					"attach fex {id}",
-					"dbgexec satctrl env show-ps",
-					"dbgexec satctrl env show-ps-la",
-					"show platform software {code_name} rmon 0 ni0",
-					"show platform software {code_name} rmon 0 ni1",
-					"show platform software {code_name} rmon 0 ni2",
-					"show platform software {code_name} rmon 0 ni3",
-					"show platform software {code_name} rmon 0 ni4",
-					"show platform software {code_name} rmon 0 ni5",
-					"show platform software {code_name} rmon 0 ni6",
-					"show platform software {code_name} rmon 0 ni7",
-					"exit"
-				],
-				"parser": [
-					"day2",
-					"attach_fex"
-				]
-			}
-		]
-	},
-	{
-		"device_groups": [
-			"ALL_CISCO_EXCLUDE_VDC1"
-		],
-		"commands": [
-			{
-				"command": "show cdp neighbors detail",
-				"parser": [
-					"showparser",
-					"parse_cdp_detail"
-				]
-			},
-			{
-				"command": "show lldp neighbors detail",
-				"parser": [
-					"showparser",
-					"parse_lldp_detail"
-				]
-			},
-			{
-				"command": "show interface description",
-				"parser": [
-					"showparser",
-					"parse_interface_description"
-				]
-			},
-			{
-				"command": "show etherchannel summary",
-				"parser": [
-					"showparser",
-					"parse_port_channel"
-				]
-			},
-			{
-				"command": "show ip arp",
-				"parser": [
-					"showparser",
-					"parse_arp"
-				]
-			},
-			{
-				"command": "show ip route",
-				"parser": [
-					"showparser",
-					"parse_route"
-				]
-			}
-		]
-	},
-	{
-		"device_groups": [
-			"ALL_CISCO"
-		],
-		"commands": [
-			{
-				"command": "show running-config"
-			},
-			{
-				"command": "show version",
-				"parser": [
-					"showparser",
-					"parse_version"
-				]
-			}
-		]
-	},
-	{
-		"device_groups": [
-			"ALL_N7K_NOT_VDC1",
-			"ALL_MDS"
-		],
-		"commands": [
-			{
-				"command": "show interface trans detail",
-				"parser": [
-					"showparser",
-					"parse_transceiver"
-				]
-			}
-		]
-	},
-	{
-		"device_groups": [
-			"ALL_CISCO_FHYSICAL_SW"
-		],
-		"commands": [
-			{
-				"command": "show inventory",
-				"parser": [
-					"showparser",
-					"parse_inventory"
-				]
-			},
-			{
-				"command": "show module",
-				"parser": [
-					"showparser",
-					"parse_module"
-				]
-			}
-		]
-	},
-	{
-		"device_groups": [
-			"ALL_MDS"
-		],
-		"commands": [
-			{
-				"command": "show hardware internal errors all",
-				"parser": [
-					"day2",
-					"parse_mds_hardware_internal_error"
-				]
-			},
-			{
-				"command": "show interface brief | in fc",
-				"parser": [
-					"day2",
-					"parse_mds_interface_brief"
-				]
-			},
-			{
-				"command": "show logging onboard error-stats",
-				"parser": [
-					"day2",
-					"parse_mds_logging_onboard_error_stats"
-				]
-			},
-			{
-				"command": "show logging log | begin \"2019 \" | grep \"Link failure loss of signal\"",
-				"parser": [
-					"day2",
-					"parse_mds_logging_loss_of_signal"
-				]
-			},
-			{
-				"command": "show interface detail-counters",
-				"parser": [
-					"day2",
-					"parse_mds_interface_detail_counters"
-				]
-			},
-			{
-				"command": "clear counters"
-			},
-			{
-				"command": ""
-			}
-		]
-	},
-	{
-		"device_groups": [
-			"ALL_N7K",
-			"ALL_N5K"
-		],
-		"commands": [
-			{
-				"command": "show interface counters errors",
-				"parser": [
-					"day2",
-					"parse_nxos_interface_counter_error"
-				]
-			}
-		]
-	},
-	{
-		"device_groups": [
-			"ALL_CISCO_DS",
-			"ALL_CISCO_AS",
-			"44WA"
-		],
-		"commands": [
-			{
-				"command": "show mac address-table",
-				"parser": [
-					"showparser",
-					"parse_mac"
-				]
-			},
-			{
-				"command": "show interface brief",
-				"parser": [
-					"showparser",
-					"parse_ip_interface_brief"
-				]
-			},
-			{
-				"command": "show ip interface brief",
-				"parser": [
-					"showparser",
-					"parse_ip_interface_brief"
-				]
-			},
-			{
-				"command": "show interface status",
-				"parser": [
-					"showparser",
-					"parse_interface_status"
-				]
-			},
-			{
-				"command": "show interface",
-				"parser": [
-					"showparser",
-					"parse_interface"
-				]
-			},
-			{
-				"command": "clear counters"
-			},
-			{
-				"command": ""
-			}
-		]
-	}
+    {
+        "devices": [
+            "NF70SW|JD70SW 0A|0B VDC3",
+            "JD70SW 0A|0B VDC4|VDC5",
+            "NF70SW 0A|0B F1-VDC2|F3-VDC4"
+        ],
+        "commands": [
+            {
+                "command": "show system internal access-list vlan 1000 input statistics | in redirect(0x1)",
+                "parser": [
+                    "day2",
+                    "parse_internal_access_list"
+                ]
+            },
+            {
+                "command": "show system internal access-list vlan 1998 input statistics | in redirect(0x1)",
+                "parser": [
+                    "day2",
+                    "parse_internal_access_list"
+                ]
+            },
+            {
+                "command": "show system internal access-list vlan 1999 input statistics | in redirect(0x1)",
+                "parser": [
+                    "day2",
+                    "parse_internal_access_list"
+                ]
+            },
+            {
+                "command": "show system internal access-list vlan 2000 input statistics | in redirect(0x1)",
+                "parser": [
+                    "day2",
+                    "parse_internal_access_list"
+                ]
+            }
+        ]
+    },
+    {
+        "devices": [
+            "NF70SW 0A|0B -B5|-B6 VDC1",
+            "JD70SW VDC1"
+        ],
+        "commands": [
+            {
+                "command": "slot 5 show system internal raid",
+                "parser": [
+                    "day2",
+                    "parse_system_internal_raid"
+                ]
+            },
+            {
+                "command": "slot 6 show system internal raid",
+                "parser": [
+                    "day2",
+                    "parse_system_internal_raid"
+                ]
+            }
+        ]
+    },
+    {
+        "device_groups": [
+            "ALL_N7K_VDC1"
+        ],
+        "commands": [
+            {
+                "command": "slot 5 show system internal flash",
+                "parser": [
+                    "day2",
+                    "parse_system_internal_flash"
+                ]
+            },
+            {
+                "command": "slot 6 show system internal flash",
+                "parser": [
+                    "day2",
+                    "parse_system_internal_flash"
+                ]
+            },
+            {
+                "command": "show vdc membership",
+                "parser": [
+                    "showparser",
+                    "parse_vdc_membership"
+                ]
+            }
+        ]
+    },
+    {
+        "devices": [
+            "NF70SW -C0 !PJS",
+            "JD70SW03-C0|JD70SW04-C0"
+        ],
+        "commands": [
+            {
+                "command": "show system internal mts buffers detail",
+                "parser": [
+                    "day2",
+                    "parse_internal_mts_buffer_detail"
+                ]
+            },
+            {
+                "command": "slot 1 show system internal mts buffers detail",
+                "parser": [
+                    "day2",
+                    "parse_internal_mts_buffer_detail"
+                ]
+            },
+            {
+                "command": "slot 2 show system internal mts buffers detail",
+                "parser": [
+                    "day2",
+                    "parse_internal_mts_buffer_detail"
+                ]
+            },
+            {
+                "command": "slot 3 show system internal mts buffers detail",
+                "parser": [
+                    "day2",
+                    "parse_internal_mts_buffer_detail"
+                ]
+            },
+            {
+                "command": "slot 5 show system internal mts buffers detail",
+                "parser": [
+                    "day2",
+                    "parse_internal_mts_buffer_detail"
+                ]
+            },
+            {
+                "command": "slot 11 show system internal mts buffers detail",
+                "parser": [
+                    "day2",
+                    "parse_internal_mts_buffer_detail"
+                ]
+            },
+            {
+                "command": "slot 14 show system internal mts buffers detail",
+                "parser": [
+                    "day2",
+                    "parse_internal_mts_buffer_detail"
+                ]
+            },
+            {
+                "command": "slot 16 show system internal mts buffers detail",
+                "parser": [
+                    "day2",
+                    "parse_internal_mts_buffer_detail"
+                ]
+            },
+            {
+                "command": "slot 17 show system internal mts buffers detail",
+                "parser": [
+                    "day2",
+                    "parse_internal_mts_buffer_detail"
+                ]
+            }
+        ]
+    },
+    {
+        "devices": [
+            "70SW VDC1",
+            "JD70SW03-C0|JD70SW04-C0",
+            "70SW -C0_PJS"
+        ],
+        "commands": [
+            {
+                "command": "show system internal mts buffers detail",
+                "parser": [
+                    "day2",
+                    "parse_internal_mts_buffer_detail"
+                ]
+            },
+            {
+                "command": "slot 1 show system internal mts buffers detail",
+                "parser": [
+                    "day2",
+                    "parse_internal_mts_buffer_detail"
+                ]
+            },
+            {
+                "command": "slot 2 show system internal mts buffers detail",
+                "parser": [
+                    "day2",
+                    "parse_internal_mts_buffer_detail"
+                ]
+            },
+            {
+                "command": "slot 3 show system internal mts buffers detail",
+                "parser": [
+                    "day2",
+                    "parse_internal_mts_buffer_detail"
+                ]
+            },
+            {
+                "command": "slot 4 show system internal mts buffers detail",
+                "parser": [
+                    "day2",
+                    "parse_internal_mts_buffer_detail"
+                ]
+            },
+            {
+                "command": "slot 7 show system internal mts buffers detail",
+                "parser": [
+                    "day2",
+                    "parse_internal_mts_buffer_detail"
+                ]
+            },
+            {
+                "command": "slot 8 show system internal mts buffers detail",
+                "parser": [
+                    "day2",
+                    "parse_internal_mts_buffer_detail"
+                ]
+            },
+            {
+                "command": "slot 9 show system internal mts buffers detail",
+                "parser": [
+                    "day2",
+                    "parse_internal_mts_buffer_detail"
+                ]
+            },
+            {
+                "command": "slot 10 show system internal mts buffers detail",
+                "parser": [
+                    "day2",
+                    "parse_internal_mts_buffer_detail"
+                ]
+            }
+        ]
+    },
+    {
+        "devices": [
+            "65SW"
+        ],
+        "commands": [
+            {
+                "command": "show mac-address-table",
+                "parser": [
+                    "showparser",
+                    "parse_mac"
+                ]
+            }
+        ]
+    },
+    {
+        "devices": [
+            "70SW !MGT cisco",
+            "70RT cisco"
+        ],
+        "commands": [
+            {
+                "command": "show processes memory | in taca",
+                "parser": [
+                    "day2",
+                    "parse_processes_memory_tacacs"
+                ]
+            }
+        ]
+    },
+    {
+        "device_groups": [
+            "ALL_N7K_NOT_VDC1"
+        ],
+        "commands": [
+            {
+                "command": "show port-channel summary",
+                "parser": [
+                    "showparser",
+                    "parse_port_channel"
+                ]
+            }
+        ]
+    },
+    {
+        "device_groups": [
+            "ALL_CISCO_DS"
+        ],
+        "commands": [
+            {
+                "command": "show vlan brief",
+                "parser": [
+                    "showparser",
+                    "parse_vlan_brief"
+                ]
+            }
+        ]
+    },
+    {
+        "device_groups": [
+            "ALL_CISCO_AS"
+        ],
+        "commands": [
+            {
+                "command": "show vlan brief",
+                "parser": [
+                    "showparser",
+                    "parse_vlan_brief"
+                ]
+            }
+        ]
+    },
+    {
+        "device_groups": [
+            "HW_BL"
+        ],
+        "commands": [
+            {
+                "command": "display vlan | in common",
+                "parser": [
+                    "day2",
+                    "parse_vlan_huawei"
+                ]
+            }
+        ]
+    },
+    {
+        "device_groups": [
+            "FEX_ATTACHED_N7K&N5K"
+        ],
+        "dependency": "show fex",
+        "commands": [
+            {
+                "command": "attach fex",
+                "command_group": [
+                    "attach fex {id}",
+                    "dbgexec satctrl env show-ps",
+                    "dbgexec satctrl env show-ps-la",
+                    "show platform software {code_name} rmon 0 ni0",
+                    "show platform software {code_name} rmon 0 ni1",
+                    "show platform software {code_name} rmon 0 ni2",
+                    "show platform software {code_name} rmon 0 ni3",
+                    "show platform software {code_name} rmon 0 ni4",
+                    "show platform software {code_name} rmon 0 ni5",
+                    "show platform software {code_name} rmon 0 ni6",
+                    "show platform software {code_name} rmon 0 ni7",
+                    "exit"
+                ],
+                "parser": [
+                    "day2",
+                    "attach_fex"
+                ]
+            }
+        ]
+    },
+    {
+        "device_groups": [
+            "ALL_CISCO_EXCLUDE_VDC1"
+        ],
+        "commands": [
+            {
+                "command": "show cdp neighbors detail",
+                "parser": [
+                    "showparser",
+                    "parse_cdp_detail"
+                ]
+            },
+            {
+                "command": "show lldp neighbors detail",
+                "parser": [
+                    "showparser",
+                    "parse_lldp_detail"
+                ]
+            },
+            {
+                "command": "show interface description",
+                "parser": [
+                    "showparser",
+                    "parse_interface_description"
+                ]
+            },
+            {
+                "command": "show etherchannel summary",
+                "parser": [
+                    "showparser",
+                    "parse_port_channel"
+                ]
+            },
+            {
+                "command": "show ip arp",
+                "parser": [
+                    "showparser",
+                    "parse_arp"
+                ]
+            },
+            {
+                "command": "show ip route",
+                "parser": [
+                    "showparser",
+                    "parse_route"
+                ]
+            }
+        ]
+    },
+    {
+        "device_groups": [
+            "ALL_CISCO"
+        ],
+        "commands": [
+            {
+                "command": "show running-config"
+            },
+            {
+                "command": "show version",
+                "parser": [
+                    "showparser",
+                    "parse_version"
+                ]
+            }
+        ]
+    },
+    {
+        "device_groups": [
+            "ALL_N7K_NOT_VDC1",
+            "ALL_MDS"
+        ],
+        "commands": [
+            {
+                "command": "show interface trans detail",
+                "parser": [
+                    "showparser",
+                    "parse_transceiver"
+                ]
+            }
+        ]
+    },
+    {
+        "device_groups": [
+            "ALL_CISCO_FHYSICAL_SW"
+        ],
+        "commands": [
+            {
+                "command": "show inventory",
+                "parser": [
+                    "showparser",
+                    "parse_inventory"
+                ]
+            },
+            {
+                "command": "show module",
+                "parser": [
+                    "showparser",
+                    "parse_module"
+                ]
+            }
+        ]
+    },
+    {
+        "device_groups": [
+            "ALL_MDS"
+        ],
+        "commands": [
+            {
+                "command": "show hardware internal errors all",
+                "parser": [
+                    "day2",
+                    "parse_mds_hardware_internal_error"
+                ]
+            },
+            {
+                "command": "show interface brief | in fc",
+                "parser": [
+                    "day2",
+                    "parse_mds_interface_brief"
+                ]
+            },
+            {
+                "command": "show logging onboard error-stats",
+                "parser": [
+                    "day2",
+                    "parse_mds_logging_onboard_error_stats"
+                ]
+            },
+            {
+                "command": "show logging log | begin \"2019 \" | grep \"Link failure loss of signal\"",
+                "parser": [
+                    "day2",
+                    "parse_mds_logging_loss_of_signal"
+                ]
+            },
+            {
+                "command": "show interface detail-counters",
+                "parser": [
+                    "day2",
+                    "parse_mds_interface_detail_counters"
+                ]
+            },
+            {
+                "command": "clear counters"
+            },
+            {
+                "command": ""
+            }
+        ]
+    },
+    {
+        "device_groups": [
+            "ALL_N7K",
+            "ALL_N5K"
+        ],
+        "commands": [
+            {
+                "command": "show interface counters errors",
+                "parser": [
+                    "day2",
+                    "parse_nxos_interface_counter_error"
+                ]
+            }
+        ]
+    },
+    {
+        "device_groups": [
+            "ALL_CISCO_DS",
+            "ALL_CISCO_AS",
+            "44WA"
+        ],
+        "commands": [
+            {
+                "command": "show mac address-table",
+                "parser": [
+                    "showparser",
+                    "parse_mac"
+                ]
+            },
+            {
+                "command": "show interface brief",
+                "parser": [
+                    "showparser",
+                    "parse_ip_interface_brief"
+                ]
+            },
+            {
+                "command": "show ip interface brief",
+                "parser": [
+                    "showparser",
+                    "parse_ip_interface_brief"
+                ]
+            },
+            {
+                "command": "show interface status",
+                "parser": [
+                    "showparser",
+                    "parse_interface_status"
+                ]
+            },
+            {
+                "command": "show interface",
+                "parser": [
+                    "showparser",
+                    "parse_interface"
+                ]
+            },
+            {
+                "command": "clear counters"
+            },
+            {
+                "command": ""
+            }
+        ]
+    }
 ]
